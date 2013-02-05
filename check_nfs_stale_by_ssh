@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
+# There are some issues with this check... A local script could do
+# much more :-/
+
+HOSTNAME=$1
+
+if [ -z $HOSTNAME ]; then
+        echo "No hostname given";
+        exit -1
+fi
+
+op="`ssh -oConnectTimeout=3 -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no root@"$HOSTNAME" df 2>&1|grep 'Stale'`"
+exitcode=$?
+
+if [ $exitcode == 255 ]; then
+	echo "SSH exited with non zero exit code: $op";
+	exit 1
+fi
+
+if [ ! "$op" == "" ]; then
+        echo "Stale NFS handle found: $op";
+        exit 1
+fi
+
+echo "No stale NFS handle found"
+exit 0

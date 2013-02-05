@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
+
+HOSTNAME=$1
+
+if [ -z $HOSTNAME ]; then
+        echo "No hostname given";
+        exit -1
+fi
+
+op="`ssh -oConnectTimeout=3 -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null root@"$HOSTNAME" ps -ef|wc -l`"
+exitcode=$?
+
+if [ $exitcode == 255 ]; then
+	echo "SSH exited with non zero exit code: $op";
+	exit 1
+fi
+
+echo "Total procs: $op | procs=$op;;;"
+exit 0

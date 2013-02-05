@@ -1,0 +1,175 @@
+#!/bin/bash
+#
+# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
+#
+# Event handler script to send events to TEC
+# Base on scripts by Thomas Hager and Werner Vesely
+# Lot of customization in the code needed if you want to
+# use this!
+#
+
+EMSG=/opt/tivoli/tec/bin/postemsg
+EMSGCONF=/opt/tivoli/tec/etc/postemsg.conf
+
+# TEST ONLY:
+# EMSG=/bin/echo
+
+LOG="/usr/bin/logger -p daemon.info -t nag2tec --"
+
+usage() {
+    me=`basename $0`
+    echo "$me etype hostname state statetype [servicename] message"
+    echo -e "\t etype       : Event type (HOST or SERVICE)"
+    echo -e "\t hostname    : Originator hostname"
+    echo -e "\t state       : Current host/service state"
+    echo -e "\t statetype   : Current host/service state type (soft,hard)"
+    echo -e "\t servicename : Service name (mandatory for SERVICE)"
+    echo -e "\t message     : The plugin message"
+
+    exit 1
+}
+
+# +++ determine prefix: "N4T" or "N2T"
+# ATTENTION: this is hard-coded for Bucharest and Vienna !
+MYHOST="`hostname -s`"
+
+if [ $MYHOST == "SOMEHOSTINRO" ] ; then
+  MYPREFIX="N2T"
+  MYSERVER="http://ronag.site.com"
+fi
+if [ $MYHOST == "SOMEHOSTINAT" ] ; then
+  MYPREFIX="N4T"
+  MYSERVER="http://atnag.site.com"
+fi
+if [ ! $MYPREFIX ]; then
+	echo "Could not determine ..."
+	exit -255;
+fi
+
+if [ $# -lt 5 ]; then
+	$LOG "ERROR> Not enough arguments"
+	usage
+fi
+
+TYPE=$1
+ALL=$TYPE
+shift
+
+HOST=$1
+ALL="$ALL;$HOST"
+shift
+
+STATE=$1
+ALL="$ALL;$STATE"
+shift
+
+STATETYPE=$1
+ALL="$ALL;$STATETYPE"
+shift
+
+if [ "x$TYPE" == "xSERVICE" ]; then
+    SERVICE=$1
+    shift
+elif [ "x$TYPE" == "xHOST" ]; then
+    SERVICE="HOST"
+else
+    $LOG "ERR> Event Type \"$TYPE\" unknown ($ALL)."
+    echo "Event Type \"$TYPE\" unknown."
+    exit 3
+fi
+
+MES=$@
+
+###
+### vrfy vars
+###
+
+if [ ! -x $EMSG ]; then
+    echo "$EMSG not available"
+    $LOG "ERR> $EMSG not available"
+    exit 3
+fi
+
+if [ ! -s $EMSGCONF ]; then
+    echo "$EMSGCONF not available"
+    $LOG "ERR> $EMSGCONF not available"
+    exit 3
+fi
+
+# to be on the safe side...
+if [ "x$HOST" == "x" -o \
+	"x$STATE" == "x" -o \
+	"x$STATETYPE" == "x" -o \
+	"x$SERVICE" == "x" ]; then
+    $LOG "ERR> Arguments missing"
+    usage
+fi
+
+if [ $STATETYPE == "SOFT" ]; then
+    # do nothing
+    $LOG "INFO> Ignoring SOFT event"
+    exit 0
+elif [ $STATETYPE == "HARD" ]; then
+    # ok
+    :
+else
+    $LOG "ERR> State type \"$STATETYPE\" not supported"
+    echo "State type \"$STATETYPE\" not supported"
+    exit 3
+fi
+
+if [ $TYPE == "SERVICE" ]; then
+    case $STATE in
+	"OK")
+             STATE="HARMLESS"
+             ;;
+	"WARNING")
+	     $LOG "INFO> Ignoring WARNING event"
+	     # do nothing
+	     exit 0
+	     ;;
+	"UNKNOWN")
+	     $LOG "INFO> Ignoring UNKNOWN event"
+             # do nothing
+             exit 0
+	     ;;
+	"CRITICAL")
+	     STATE="CRITICAL"
+	     ;;
+	"ACK")
+	     STATE="HARMLESS"
+             LOG="echo"
+	     ;;
+	*)
+	     $LOG "ERR> State \"$STATE\" not supported"
+	     echo "State \"$STATE\" is not supported"
+	     exit 3
+	     ;;
+    esac
+else
+    case $STATE in
+	"UP")
+	     STATE="HARMLESS"
+             ;;
+	"DOWN"|"UNREACHABLE")
+             STATE="CRITICAL"
+	     ;;
+	"ACK")
+	     STATE="HARMLESS"
+             LOG="echo"
+	     ;;
+	*)
+	     $LOG "ERR> State \"$STATE\" not supported"
+	     echo "State \"$STATE\" is not supported"
+	     exit 3
+	     ;;
+    esac
+fi
+
+$LOG "INFO> Triggering TEC with HOSTNAME=$HOST SERVICE=$SERVICE STATE=$STATE MESSAGE=\"$MES\""
+
+if [ $TYPE == "SERVICE" ]; then
+    $EMSG -f $EMSGCONF -r "$STATE" -m "$MES" hostname="$HOST" adapter_host="$(hostname -s)" monitor=nagios2tec probe_arg="$SERVICE" sub_source=${MYPREFIX}_ServiceGrp universal_application ${MYSERVER}
+else
+    $EMSG -f $EMSGCONF -r "$STATE" -m "$MES" hostname="$HOST" adapter_host="$(hostname -s)" monitor=nagios2tec probe_arg="$SERVICE" sub_source=${MYPREFIX}_ServiceGrp universal_application ${MYSERVER}
+fi

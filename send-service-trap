@@ -1,0 +1,22 @@
+# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
+# Base on some howto found on the internet
+
+# Arguments:
+# $1 = Management Station
+# $2 = Community String
+# $3 = host_name
+# $4 = service_description (Description of the service)
+# $5 = return_code (An integer that determines the state
+#       of the service check, 0=OK, 1=WARNING, 2=CRITICAL,
+#       3=UNKNOWN).
+# $6 = plugin_output (A text string that should be used
+#       as the plugin output for the service check)
+#
+#
+
+LOG="/usr/bin/logger -p daemon.info -t send-service-trap --"
+$LOG "Sent trap"
+$LOG "/usr/bin/snmptrap -v 2c -c $2 $1 '' NAGIOS-NOTIFY-MIB::nSvcEvent nSvcHostname s \"$3\" nSvcDesc s \"$4\" nSvcStateID i $5 nSvcOutput s \"$6\"
+
+/usr/bin/snmptrap -v 2c -c $2 $1 '' NAGIOS-NOTIFY-MIB::nSvcEvent nSvcHostname s "$3" nSvcDesc s "$4" nSvcStateID i $5 nSvcOutput s "$6"
+

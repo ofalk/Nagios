@@ -1,0 +1,39 @@
+#!/bin/sh
+
+# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
+# Base some some ideas and scripts found in the internet
+# If your idea is reused here, please don't hesitate to contact
+# me and I'll add your name here.
+
+HOSTNAME=$1
+
+if [ -z $HOSTNAME ]; then
+        echo "No hostname given";
+        exit -1
+fi
+
+CPU_REPORT="`ssh -oConnectTimeout=3 -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no root@"$HOSTNAME" /usr/bin/iostat -c 1 3 | sed -e 's/,/./g' | tr -s ' ' ';' | sed '/^$/d' | tail -1`"
+exitcode=$?
+
+if [ $exitcode == 255 ]; then
+	echo "SSH exited with non zero exit code: $op";
+	exit 1
+fi
+
+CPU_REPORT_SECTIONS=`echo ${CPU_REPORT} | grep ';' -o | wc -l`
+CPU_USER=`echo $CPU_REPORT | cut -d ";" -f 2`
+CPU_NICE=`echo $CPU_REPORT | cut -d ";" -f 3`
+CPU_SYSTEM=`echo $CPU_REPORT | cut -d ";" -f 4`
+CPU_IOWAIT=`echo $CPU_REPORT | cut -d ";" -f 5`
+CPU_IOWAIT_MAJOR=`echo $CPU_IOWAIT | cut -d "." -f 1`
+if [ ${CPU_REPORT_SECTIONS} -ge 6 ]; then
+	CPU_STEAL=`echo $CPU_REPORT | cut -d ";" -f 6`
+	CPU_IDLE=`echo $CPU_REPORT | cut -d ";" -f 7`
+	NAGIOS_DATA="user=${CPU_USER}% system=${CPU_SYSTEM}% iowait=${CPU_IOWAIT}% idle=${CPU_IDLE}% nice=${CPU_NICE}% steal=${CPU_STEAL}% | CpuUser=${CPU_USER};CpuSystem=${CPU_SYSTEM};CpuIoWait=${CPU_IOWAIT};CpuIdle=${CPU_IDLE};CpuNice=${CPU_NICE};CpuSteal=${CPU_STEAL};$WARNING_THRESHOLD;$CRITICAL_THRESHOLD"
+else
+	CPU_IDLE=`echo $CPU_REPORT | cut -d ";" -f 6`
+	NAGIOS_DATA="user=${CPU_USER}% system=${CPU_SYSTEM}% iowait=${CPU_IOWAIT}% idle=${CPU_IDLE}% nice=${CPU_NICE}% | CpuUser=${CPU_USER};CpuSystem=${CPU_SYSTEM};CpuIoWait=${CPU_IOWAIT};CpuIdle=${CPU_IDLE};CpuNice=${CPU_NICE};$WARNING_THRESHOLD;$CRITICAL_THRESHOLD"
+fi
+
+echo "OK: $NAGIOS_DATA"
+exit 0

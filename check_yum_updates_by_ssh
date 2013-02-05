@@ -1,0 +1,25 @@
+#!/bin/sh
+
+# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
+
+HOSTNAME=$1
+
+if [ -z $HOSTNAME ]; then
+        echo "No hostname given";
+        exit -1
+fi
+
+ssh -oConnectTimeout=3 -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no root@"$HOSTNAME" '/usr/lib*/nagios/plugins/check_updates -w 1 -c 50 -t 110'
+exitcode=$?
+
+if [ $exitcode == 255 ]; then
+	echo "SSH exited with non zero exit code.";
+	exit 3
+fi
+
+if [ $exitcode == 127 ]; then
+	echo "Probably command not found...";
+	exit 3
+fi
+
+exit $exitcode

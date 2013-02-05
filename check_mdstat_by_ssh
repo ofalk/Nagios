@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
+
+HOSTNAME=$1
+
+if [ -z $HOSTNAME ]; then
+        echo "No hostname given";
+        exit -1
+fi
+
+op="`ssh -oConnectTimeout=3 -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no root@"$HOSTNAME" cat /proc/mdstat`"
+exitcode=$?
+
+if [ $exitcode == 255 ]; then
+	echo "SSH exited with non zero exit code: $op";
+	exit 1
+fi
+
+x=$(dirname $0)
+echo "$op" | $x/check_mdstat.py
+exit $?

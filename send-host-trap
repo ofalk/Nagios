@@ -1,0 +1,15 @@
+# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
+# Based on some howto found on the internet
+
+# Arguments:
+# $1 = Management Station
+# $2 = Community String
+# $3 = host_name
+# $4 = HostStatID A number that corresponds to the current state of the host: 0=UP, 1=DOWN, 2=UNREACHABLE.
+# $5 = HOSTOUTPUT The first line of text output from the last host check (i.e. "Ping OK").
+#
+LOG="/usr/bin/logger -p daemon.info -t send-host-trap --"
+$LOG "Sent trap"
+$LOG "/usr/bin/snmptrap -v 2c -c $2 $1 '' NAGIOS-NOTIFY-MIB::nHostEvent nHostname s \"$3\" nHostStateID i $4 nHostOutput s \"$5\""
+
+/usr/bin/snmptrap -v 2c -c $2 $1 '' NAGIOS-NOTIFY-MIB::nHostEvent nHostname s "$3" nHostStateID i $4 nHostOutput s "$5"
