@@ -1,7 +1,5 @@
 #!/usr/bin/perl
 
-# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
-
 use strict;
 use warnings;
 use Net::SNMP;
@@ -13,6 +11,64 @@ our $WARNING = 1;
 our $CRITICAL = 2;
 our $UNKNOWN = 3;
 our $storbase= '.1.3.6.1.2.1.25.2.3';
+our $descbase= $storbase . '.1.3';
+
+package Net::SNMP::DskUsg::Item;
+sub new {
+	my $class = shift;
+	my $args = shift;
+
+	$class = ref($class) || $class;
+	return bless { session => $args->{session}, idx => $args->{idx}}, $class;
+}
+
+sub _get_single {
+	my $self = shift;
+	my $oid = shift;
+
+	$self->{session}->get_request(-varbindlist => [ $oid ])->{$oid};
+}
+
+sub get_single {
+	my $self = shift;
+	my $oid = shift;
+	my $name = '_' . ((caller(1))[3]);
+
+	$self->{count_count} = 0 unless exists $self->{count_count};
+	$self->{count_count}++;
+
+	if($self->{$name}) {
+		return $self->{$name};
+	} else {
+		$self->{$name} = $self->_get_single($oid);
+		return  $self->{$name};
+	}
+}
+
+sub index		{ my $self = shift; $self->{idx}; };
+sub description		{ my $self = shift; $self->get_single($storbase . '.1.3.' . $self->{idx}); };
+sub total		{ my $self = shift; $self->get_single($storbase . '.1.5.' . $self->{idx}); };
+sub used		{ my $self = shift; $self->get_single($storbase . '.1.6.' . $self->{idx}); };
+sub failures		{ my $self = shift; $self->get_single($storbase . '.1.7.' . $self->{idx}); };
+sub sau			{ my $self = shift; $self->get_single($storbase . '.1.4.' . $self->{idx}); };
+sub type		{ my $self = shift; $self->get_single($storbase . '.1.2.' . $self->{idx}); };
+sub total_1k		{ my $self = shift; eval { $self->total	* $self->sau / 1024; }; };
+sub used_1k		{ my $self = shift; eval { $self->used	* $self->sau / 1024; }; };
+sub total_human		{ my $self = shift; eval { _convert($self->total * $self->sau); } };;
+sub used_human		{ my $self = shift; eval { _convert($self->used * $self->sau); } };;
+sub used_percent	{ my $self = shift; eval { sprintf("%.2f", $self->used / ($self->total / 100)); } };;
+
+sub _convert {
+	defined (my $size = shift) || return undef;
+	my $block = 1024;
+	my @args = qw/B K M G/;
+	while (@args && $size > $block) {
+		shift @args;
+		$size /= $block;
+	}
+	$size = sprintf("%.2f",$size);
+	"$size$args[0]";
+}
 
 package Net::SNMP::DskUsg;
 use Carp qw/carp/;
@@ -23,58 +79,42 @@ sub new {
 	return bless {}, $class;
 }
 
+sub DESTROY {
+	my $self = shift;
+	eval {
+		$self->{session}->close;
+	};
+}
+
 sub get {
 	my $self = shift;
 	my $host = shift;
 	my $community = shift;
 	my $table;
 
-    my ($session, $error) = Net::SNMP->session(
-		-hostname   => $host,
-		-version        => '1',
-		-retries        => 3,
-		-timeout        => 10,
-		-community  => $community
+	($self->{session}, $self->{error}) = Net::SNMP->session(
+		-hostname	=> $host,
+		-version	=> '1',
+		-retries	=> 3,
+		-timeout	=> 10,
+		-community	=> $community,
 	);
-	if ($error) {
-		carp "UNKNOWN - cannot establish connection, $error\n";
+	if ($self->{error}) {
+		carp "UNKNOWN - cannot establish connection, $self->{error}\n";
 		exit $UNKNOWN;
 	}
-	my $result = $session->get_table(
-		-baseoid        => $storbase,
+	$self->{result} = $self->{session}->get_table(
+		-baseoid        => $descbase,
 	);
-	if ($session->error_status()) {
-		carp "UNKNOWN - cannot fetch data, ".$session->error()."\n";
+	if ($self->{session}->error_status()) {
+		carp "UNKNOWN - cannot fetch data, " . $self->{session}->error() . "\n";
 		exit $UNKNOWN;
 	}
-	$session->close;
-	foreach (sort keys %{$result}) {
-		my $desc = $_;
-		$desc =~ s/\.([0-9]+?)\.([0-9]+?)$/.3.$2/;
-		my $idx = $_;
-		if($idx =~ /^.1.3.6.1.2.1.25.2.3.1.5/) {
-			$idx = 'total';
-		} elsif($idx =~ /^.1.3.6.1.2.1.25.2.3.1.6/) {
-			$idx = 'used';
-		} elsif($idx =~ /^.1.3.6.1.2.1.25.2.3.1.7/) {
-			$idx = 'failures';
-		} elsif($idx =~ /^.1.3.6.1.2.1.25.2.3.1.1/) {
-			$idx = 'index';
-		} elsif($idx =~ /^.1.3.6.1.2.1.25.2.3.1.3/) {
-			$idx = 'description';
-		} elsif($idx =~ /^.1.3.6.1.2.1.25.2.3.1.4/) {
-			$idx = 'sau';
-		} elsif($idx =~ /^.1.3.6.1.2.1.25.2.3.1.2/) {
-			$idx = 'type';
-		}
-		$table->{$result->{$desc}}->{$idx} = $result->{$_};
-	}
-	foreach (sort keys %{$table}) {
-		eval { $table->{$_}->{total_1k} = $table->{$_}->{total} * ($table->{$_}->{sau} / 1024) };
-		eval { $table->{$_}->{used_1k} = $table->{$_}->{used} * ($table->{$_}->{sau} / 1024) };
-		eval { $table->{$_}->{total_human} = _convert($table->{$_}->{total} * $table->{$_}->{sau}) };
-		eval { $table->{$_}->{used_human} = _convert($table->{$_}->{used} * $table->{$_}->{sau}) };
-		eval { $table->{$_}->{used_percent} = sprintf("%.2f", $table->{$_}->{used} / ($table->{$_}->{total}/100)) };
+
+	foreach (sort keys %{$self->{result}}) {
+		my $desc = $self->{result}->{$_};
+		$_ =~ m/\.([0-9]+?)\.([0-9]+?)$/;
+		$table->{$desc} = new Net::SNMP::DskUsg::Item({ session => $self->{session}, idx => $2 });
 	}
 
 	if (!$table) {
@@ -87,6 +127,7 @@ sub get {
 package Net::SNMP::DskUsg::Cached;
 use base 'Net::SNMP::DskUsg';
 use Storable qw/lock_store lock_retrieve/;
+use Carp qw/croak/;
 sub new {
 	my $proto = shift;
 	my $class = ref($proto) || $proto;
@@ -117,6 +158,8 @@ sub get {
 	$cache = {} if ($@ or !$cache);
 
 	if($cache->{$host} && !$self->_older_than(5, $cache->{$host}->{cached})) {
+		use Data::Dumper;
+		die Dumper($cache);
 		return $cache->{$host}->{dta};
 	}
 	my $dta = $self->SUPER::get($host, $community);
@@ -155,22 +198,26 @@ MAIN: {
 	my @exclude = qw//;
 	my @regexclude = qw//;
 	my @excludetype = qw//;
+	my @includeonly = qw//;
 	my $warnlvl = 80;
 	my $critlvl = 90;
 	my ($error, $session, $result);
 	my $table;
 	my $debug = 0;
+	my $cache = 1; # THIS DOESN'T WORK AT THE MOMENT!!!!!
 
 	$result = GetOptions(
 		"host|hostname|H=s"	=> \$host,
 		"community|C=s"		=> \$community,
 		"mountpoint|m=s"	=> \$mountpoint,
 		"exclude|e=s"		=> \@exclude,
+		"includeonly|i=s"	=> \@includeonly,
 		"regexclude|r=s"	=> \@regexclude,
 		"excludetype=s"		=> \@excludetype,
-		"warning|w=i"		=> \$warnlvl,
-		"critical|c=i"		=> \$critlvl,
-		"debug"		=> \$debug,
+		"warning|w=f"		=> \$warnlvl,
+		"critical|c=f"		=> \$critlvl,
+		"debug"			=> \$debug,
+#		"cache"			=> \$cache,
 	);
 
 	if (!$result) {
@@ -181,45 +228,58 @@ MAIN: {
 		print "UNKNOWN - hostname is missing\n";
 		exit $UNKNOWN;
 	}
-	if (!$mountpoint && !@exclude && !@regexclude) {
-		print "UNKNOWN - mountpoint or exclude is missing\n";
+	if (!$mountpoint && !@exclude && !@regexclude && !@includeonly) {
+		print "UNKNOWN - mountpoint, exclude(s) or include(s) is missing\n";
 		exit $UNKNOWN;
 	}
 
-	my $grabber = new Net::SNMP::DskUsg::Cached;
+	my $grabber;
+	unless($cache) {
+		$grabber = new Net::SNMP::DskUsg::Cached;
+	} else {
+		$grabber = new Net::SNMP::DskUsg;
+	}
 	$table = $grabber->get($host, $community);
 
-	if(!@exclude && !@regexclude && !@excludetype) {
-		$table = $table->{$mountpoint} if($table->{$mountpoint});
+	if ($debug == 1) {
+		warn Dumper($table);
+	}
 
-		if (!$table) {
-			print "UNKNOWN - no data for $mountpoint found\n";
+	if(!@exclude && !@regexclude && !@excludetype && !@includeonly) {
+		if($table->{$mountpoint}) {
+			$table = $table->{$mountpoint};
+		} else {
+			print "OK - $mountpoint doesn't exist\n";
+			exit $OK;
+		}
+
+		my ($abswarn,$abscrit);
+		my $ex;
+		eval {
+			$abswarn = $table->total_1k/100*$warnlvl;
+			$abscrit = $table->total_1k/100*$critlvl;
+			if ($table->used_percent > $critlvl) {
+				print "SNMP CRITICAL - " . $table->used_percent . " | usg=" . $table->used_percent . ";$warnlvl;$critlvl;0; ";
+				print "usgABS=" . $table->used_1k . ";$abswarn;$abscrit;0;\n";
+				$ex = $CRITICAL;
+			}
+
+			if ($table->used_percent > $warnlvl) {
+				print "SNMP WARNING - ".$table->used_percent . " | usg=" . $table->used_percent . ";$warnlvl;$critlvl;0; ";
+				print "usgABS=" . $table->used_1k . ";$abswarn;$abscrit;0;\n";
+				$ex = $WARNING;
+			}
+
+			print "SNMP OK - ".$table->used_percent . " | usg=" . $table->used_percent . ";$warnlvl;$critlvl;0; ";
+			print "usgABS=" . $table->used_1k . ";$abswarn;$abscrit;0;\n";
+			$ex = $OK;
+		};
+		if($@) {
+			print "UNKNOWN - $@";
 			exit $UNKNOWN;
+		} else {
+			exit $ex;
 		}
-
-		if ($debug == 1) {
-			warn Dumper($table);
-		}
-
-		my $abswarn = $table->{total_1k}/100*$warnlvl;
-		my $abscrit = $table->{total_1k}/100*$critlvl;
-
-		$table->{used_percent} = 0 unless $table->{used_percent};
-		if ($table->{used_percent} > $critlvl) {
-			print "SNMP CRITICAL - " . $table->{used_percent} . " | usg=" . $table->{used_percent} . ";$warnlvl;$critlvl;0; ";
-			print "usgABS=" . $table->{used_1k} . ";$abswarn;$abscrit;0;\n";
-			exit $CRITICAL;
-		}
-
-		if ($table->{used_percent} > $warnlvl) {
-			print "SNMP WARNING - ".$table->{used_percent} . " | usg=" . $table->{used_percent} . ";$warnlvl;$critlvl;0; ";
-			print "usgABS=" . $table->{used_1k} . ";$abswarn;$abscrit;0;\n";
-			exit $WARNING;
-		}
-
-		print "SNMP OK - ".$table->{used_percent} . " | usg=" . $table->{used_percent} . ";$warnlvl;$critlvl;0; ";
-		print "usgABS=" . $table->{used_1k} . ";$abswarn;$abscrit;0;\n";
-		exit $OK;
 	} else {
 		my $status = $OK;
 		my $excl;
@@ -229,26 +289,33 @@ MAIN: {
 		my $crit = "";
 		my $warn = "";
 		foreach(keys %{$table}) {
-			next if $excl->{$_};
-			my $skip = 0;
-			foreach my $regexcl (@regexclude) {
-				$skip = 1 if $_ =~ $regexcl;
+			unless(scalar @includeonly) {
+				next if $excl->{$_};
+				my $skip = 0;
+				foreach my $regexcl (@regexclude) {
+					$skip = 1 if $_ =~ $regexcl;
+				}
+				foreach my $excltype (@excludetype) {
+					$skip = 1 if $table->{$_}->type eq $excltype;
+				}
+				next if $skip;
+			} else {
+				my $skip = 1;
+				foreach my $reginclo (@includeonly) {
+					$skip = 0 if $_ =~ /$reginclo/i;
+				}
+				next if $skip;
 			}
-			foreach my $excltype (@excludetype) {
-				$skip = 1 if $table->{$_}->{type} eq $excltype;
-			}
-			next if $skip;
-			$table->{$_}->{used_percent} = 0 unless $table->{$_}->{used_percent};
-			if ($table->{$_}->{used_percent} > $critlvl) {
-				$crit .= "'$_' = $table->{$_}->{used_percent} > $critlvl ";
+			if (($table->{$_}->used_percent||0) > $critlvl) {
+				$crit .= "'$_' = " . ($table->{$_}->used_percent||0) . " > $critlvl ";
 				$status = $CRITICAL;
-			} elsif ($table->{$_}->{used_percent} > $warnlvl) {
-				$warn .= "'$_' = $table->{$_}->{used_percent} > $warnlvl ";
+			} elsif (($table->{$_}->used_percent||0) > $warnlvl) {
+				$warn .= "'$_' = " . ($table->{$_}->used_percent||0) . " > $warnlvl ";
 				$status = $WARNING if $status != $CRITICAL;
 			} else {
-				$message .= "'$_' = $table->{$_}->{used_percent} ";
+				$message .= "'$_' = " . ($table->{$_}->used_percent||0) . ' ';
 			}
-			$perfdata .= "'$_'=" . $table->{$_}->{used_percent} . ";$warnlvl;$critlvl;0 ";
+			$perfdata .= "'$_'=" . ($table->{$_}->used_percent||0) . ";$warnlvl;$critlvl;0 ";
 		}
 		if($status == $OK) {
 			print "SNMP OK - $message | $perfdata";
@@ -266,18 +333,6 @@ MAIN: {
 			exit -100;
 		}
 	}
-}
-
-sub _convert {
-	defined (my $size = shift) || return undef;
-	my $block = 1024;
-	my @args = qw/B K M G/;
-	while (@args && $size > $block) {
-		shift @args;
-		$size /= $block;
-	}
-	$size = sprintf("%.2f",$size);
-	"$size$args[0]";
 }
 
 # vim: tabstop=4:
