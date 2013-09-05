@@ -87,21 +87,39 @@ sub _check_qname_res_name($) {
 	my $qname = shift;
 	my $status = 'CRITICAL';
 	my @names;
+	my @qn;
 	# $qname = resolved name (from $qname)
-	foreach(@{_resolv($qname)->{A}}) {
-		print "DEBUG_2: Check $_->{name} =~ $qname\n" if $debug;
-		if(($_->{name} =~ /^$qname\./i) || ($_->{name} eq $qname)) {
-			$status = 'OK';
+
+	# Handle cases of CNAMEs correctly, since the PTR will/should/must
+	# point back to the real IP, instead of the CNAME record - of course.
+	my $re = _resolv($qname);
+	if($re->{CNAME}) {
+		foreach(@{$re->{CNAME}}) {
+			push @qn, $_->{name};
 		}
-		push @names, $_->{name};
+	} else {
+		@qn = ($qname);
 	}
-	if($status ne 'OK') {
-		if(@names) {
-			$msg .= "$status: $qname (queried name) not in " . join(', ', @names) . " (resolved name(s))\n";
-		} else {
-			$msg .= "$status: $qname (queried name) doesn't resolve to anything!\n";
+	foreach $qname (@qn) {
+		foreach(@{$re->{A}}) {
+			print "DEBUG_2: Check $_->{name} =~ $qname\n" if $debug;
+			if($_->{CNAME}) {
+				$qname = $_->{CNAME};
+				$qname =~ s/^(.*){1}\./$1/;
+			}
+			if(($_->{name} =~ /^$qname\./i) || ($_->{name} eq $qname)) {
+				$status = 'OK';
+			}
+			push @names, $_->{name};
 		}
-		$overallstatus = $status;
+		if($status ne 'OK') {
+			if(@names) {
+				$msg .= "$status: $qname (queried name) not in " . join(', ', @names) . " (resolved name(s))\n";
+			} else {
+				$msg .= "$status: $qname (queried name) doesn't resolve to anything!\n";
+			}
+			$overallstatus = $status;
+		}
 	}
 	return @names;
 }
