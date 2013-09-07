@@ -1,13 +1,13 @@
 #!/usr/bin/perl
 
-# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
-
 use strict;
 use warnings;
 
-## setup phase
+our $VERSION = '0.2';
 
 use Getopt::Long;
+Getopt::Long::Configure ('auto_version');
+Getopt::Long::Configure ('auto_help');
 use Net::SNMP;
 use Data::Dumper; # TODO - remove this after development
 
@@ -32,15 +32,25 @@ use constant LD_FAILED_DRIVE_COUNT => BASEOID . '.1.2.1.11';
 use constant LD_STATUS => BASEOID . '.1.2.1.6';
 use constant HD_STATUS  => BASEOID . '.1.6.1.11';
 
-# NAGIOS constants
-use constant UNKNOWN => 3;
-use constant CRITICAL => 2;
-use constant WARNING => 1;
-use constant OK => 0;
+use constant ERRORS => {
+	'OK'		=> 0,
+	'WARNING'	=> 1,
+	'CRITICAL'	=> 2,
+	'UNKNOWN'	=> 3,
+};
 
 use constant SNMP_VERSION => 1;
 
-my $overall_status = OK;
+# Our exit subrouting... Just because it's handy
+sub do_exit {
+        my $code = shift;
+        my $mesg = shift;
+        print $mesg if $mesg;
+        print "\n";
+        exit ERRORS->{$code};
+}
+
+my $overall_status = ERRORS->{'OK'};
 my $overall_msg = "";
 
 # Initialize options
@@ -85,7 +95,7 @@ sub _get_simple_value($$) {
 	);
 	if($session->error) {
 		# Net::SNMP will error out anyway - no need to explicit add an error message
-		exit UNKNOWN;
+		do_exit('UNKNOWN', '');
 	}
 
 	foreach(keys %{$values}) {
@@ -176,15 +186,15 @@ my $drive_count = 0;
 my $failed_drive_count = 0;
 my $online_drives = 0;
 foreach(keys %{$ld}) {
-	$ld->{$_}->{nagios_status} = OK;
-	$ld->{$_}->{nagios_status} = CRITICAL unless $ld->{$_}->{ld_state} eq 0;
-	$ld->{$_}->{nagios_status} = CRITICAL unless $ld->{$_}->{ld_status} eq 0;
-	$ld->{$_}->{nagios_status} = CRITICAL unless $ld->{$_}->{drive_count} eq $ld->{$_}->{online_drives};
+	$ld->{$_}->{nagios_status} = ERRORS->{'OK'};
+	$ld->{$_}->{nagios_status} = ERRORS->{'CRITICAL'} unless $ld->{$_}->{ld_state} eq 0;
+	$ld->{$_}->{nagios_status} = ERRORS->{'CRITICAL'} unless $ld->{$_}->{ld_status} eq 0;
+	$ld->{$_}->{nagios_status} = ERRORS->{'CRITICAL'} unless $ld->{$_}->{drive_count} eq $ld->{$_}->{online_drives};
 	$drive_count += $ld->{$_}->{drive_count};
 	$online_drives += $ld->{$_}->{online_drives};
-	$ld->{$_}->{nagios_status} = CRITICAL unless $ld->{$_}->{ld_failed_drive_count} eq 0;
+	$ld->{$_}->{nagios_status} = ERRORS->{'CRITICAL'} unless $ld->{$_}->{ld_failed_drive_count} eq 0;
 	$failed_drive_count += $ld->{$_}->{ld_failed_drive_count};
-	$overall_status = $ld->{$_}->{nagios_status} unless $overall_status != OK;
+	$overall_status = $ld->{$_}->{nagios_status} unless $overall_status != ERRORS->{'OK'};
 	$ld_count++;
 }
 
@@ -202,8 +212,8 @@ foreach(keys %{$device}) {
 			# Ignore the Attention LED - if there's some real problem
 			# there will be a real error...
 			next if $device->{$_}->{description} eq "Attention LED";
-			$overall_status = CRITICAL;
-			$overall_msg .= $device->{$_}->{description} . " not OK; ";
+			$overall_status = ERRORS->{'CRITICAL'};
+			$overall_msg .= $device->{$_}->{description} . " not OK (!!!!); ";
 		}
 
 		if($device->{$_}->{description} =~ m/^PSU.*V$/) {
@@ -229,10 +239,10 @@ $session->close();
 ## data output phase
 # OK: Vendor:IFT  Model:A24F-G2430  Serial Number: 7412010  Firmware Version:3.73  Logical Drives:23  Spare Drives:1  Failed Drives:0 | 'CPU Temperature'=-274;70;80;0;100 'Controller Temperature(1)'=-274;70;80;0;100 'Controller Temperature(2)'=-274;70;80;0;100 'Cooling fan0'=0;6000;7000;0;8000 'Cooling fan1'=0;6000;7000;0;8000 'Cooling fan2'=0;6000;7000;0;8000 'Cooling fan3'=0;6000;7000;0;8000 'Backplane Temperature'=-274;70;80;0;100 
 
-print "UNKNOWN: "			if $overall_status eq UNKNOWN;
-print "CRITICAL: $overall_msg: "	if $overall_status eq CRITICAL;
-print "WARNING: $overall_msg: "		if $overall_status eq WARNING;
-print "OK: "				if $overall_status eq OK;
+print "UNKNOWN: "			if $overall_status eq ERRORS->{'UNKNOWN'};
+print "CRITICAL: $overall_msg: "	if $overall_status eq ERRORS->{'CRITICAL'};
+print "WARNING: $overall_msg: "		if $overall_status eq ERRORS->{'WARNING'};;
+print "OK: "				if $overall_status eq ERRORS->{'OK'};;
 print "Vendor: $vendor  Model: $model  Serial Number: $serial  Firmware: $firmware  Partitions: $partition_count  Logical drives: $ld_count  ";
 print "Online drives: $online_drives  Drives: $drive_count  Failed drives: $failed_drive_count  ";
 print " | ";
@@ -245,7 +255,40 @@ print "'$_'=" . $fans->{$_} . ';;;; ' foreach keys %{$fans};
 
 
 print "\n";
-warn $overall_msg if $overall_msg;
-
+#warn $overall_msg if $overall_msg;
 
 exit $overall_status;
+
+1;
+
+__END__
+
+=head1 NAME
+eck_infortrend_A24F-G2430.pl
+
+=head1 SYNOPSIS
+
+	check_infortrend_A24F-G2430.pl -h <ip|hostname> -c <community>
+			[-d|--debug] [--ignore_ups]
+
+=head1 DESCRIPTION
+
+Nagios script to check hardware status of Infortrend A24F-G2430 storages.
+
+The script has been tested only with the above mentioned system, but might
+work with other (similar) Infortrend storages as well.
+
+=head1 AUTHOR
+
+Oliver Falk E<lt>oliver@linux-kernel.atE<gt>
+
+=head1 COPYRIGHT
+
+Copyright (c) 2012-2013. Oliver Falk. All rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+See L<http://www.perl.com/perl/misc/Artistic.html>
+
+=cut
