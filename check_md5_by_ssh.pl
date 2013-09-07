@@ -631,7 +631,7 @@ CREATE v_acked_history AS
 
 =head1 AUTHOR
 
-Oliver Falk <oliver@linux-kernel.at>
+Oliver Falk E<lt>oliver@linux-kernel.atE<gt>
 
 =head1 COPYRIGHT
 
