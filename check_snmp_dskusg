@@ -262,17 +262,15 @@ MAIN: {
 				print "SNMP CRITICAL - " . $table->used_percent . " | usg=" . $table->used_percent . ";$warnlvl;$critlvl;0; ";
 				print "usgABS=" . $table->used_1k . ";$abswarn;$abscrit;0;\n";
 				$ex = $CRITICAL;
-			}
-
-			if ($table->used_percent > $warnlvl) {
+			} elsif ($table->used_percent > $warnlvl) {
 				print "SNMP WARNING - ".$table->used_percent . " | usg=" . $table->used_percent . ";$warnlvl;$critlvl;0; ";
 				print "usgABS=" . $table->used_1k . ";$abswarn;$abscrit;0;\n";
 				$ex = $WARNING;
+			} else {
+				print "SNMP OK - ".$table->used_percent . " | usg=" . $table->used_percent . ";$warnlvl;$critlvl;0; ";
+				print "usgABS=" . $table->used_1k . ";$abswarn;$abscrit;0;\n";
+				$ex = $OK;
 			}
-
-			print "SNMP OK - ".$table->used_percent . " | usg=" . $table->used_percent . ";$warnlvl;$critlvl;0; ";
-			print "usgABS=" . $table->used_1k . ";$abswarn;$abscrit;0;\n";
-			$ex = $OK;
 		};
 		if($@) {
 			print "UNKNOWN - $@";
