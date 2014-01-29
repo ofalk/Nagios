@@ -18,9 +18,9 @@ Hash::Merge::set_behavior('RIGHT_PRECEDENT');
 
 # see pod for more information
 my $defconfig = Load('
-check_by_ssh: /opt/omd/versions/0.56/lib/nagios/plugins/check_by_ssh
+check_by_ssh: /opt/omd/versions/1.00/lib/nagios/plugins/check_by_ssh
 ssh_user: root
-command: find /usr/bin/* /usr/sbin/* /sbin/* /bin/* /boot/* -maxdepth 1 -type f | xargs md5sum | sort
+command: find /usr/bin/* /usr/sbin/* /sbin/* /bin/* /boot/* /usr/lib* /lib* -maxdepth 1 -type f | xargs md5sum | sort
 ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
 check_by_ssh_opts: -E -t 180
 
@@ -65,10 +65,11 @@ sub do_exit {
 
 my $dbh = getdbh();
 
-my $host;
+my ($host, $debug);
 Getopt::Long::Configure ('pass_through');
 my $result = GetOptions (
-	"host|h=s" => \$host,
+	"host|h=s"	=> \$host,
+	"debug|d"	=> \$debug,
 );
 
 # Command line mode 9-}
@@ -81,14 +82,21 @@ if($result && !param()) {
 	my $db_hsh = $sth->fetchall_hashref('file');
 	my $fs_hsh;
 
-	open(FH, $config->{check_by_ssh} . ' -H ' . " $host " . $config->{check_by_ssh_opts}. ' -l ' . $config->{ssh_user} . ' ' . $config->{ssh_opts} . ' -C "' . $config->{command} . '" |') or do_exit('UNKNOWN', "Remote command execution on '$host' failed");
+	my $cmdline = $config->{check_by_ssh} . ' -H ' . " $host " . $config->{check_by_ssh_opts}. ' -l ' . $config->{ssh_user} . ' ' . $config->{ssh_opts} . ' -C "' . $config->{command} . '"';
+	print 'DEBUG: ' . $cmdline . "\n" if $debug;
+	open(FH, $cmdline . '|') or do_exit('UNKNOWN', "Remote command execution on '$host' failed");
+	my $nolines = 0;
 	while(<FH>) {
+		$nolines++;
 		chomp;
 		my ($checksum, $file) = split;
 
 		$fs_hsh->{$file} = $checksum;
 	}
 	close(FH);
+	#print Dumper($fs_hsh) if $debug;
+
+	do_exit('UNKNOWN', "Remote command execution on '$host' failed - not enough data received") if $nolines < 2;
 
 	my ($changed, $added, $removed);
 
@@ -380,7 +388,6 @@ EOF
 		if($row->{status} eq 'ok' && $mode eq 'short') {
 			print "<center><h2 $additional_h2_style>No invalid MD5 sums for $host (db: $config->{db}->{host})</h2></center>";
 			print end_html;
-			last;
 		}
 
 		if($row) {
@@ -543,7 +550,7 @@ CREATE v_acked_history AS
  will override the defaults - so no need to copy the defaults, if you
  do not need to change them.
 
- check_by_ssh: /opt/omd/versions/0.56/lib/nagios/plugins/check_by_ssh
+ check_by_ssh: /opt/omd/versions/1.00/lib/nagios/plugins/check_by_ssh
  ssh_user: root
  command: find /usr/bin/* /usr/sbin/* /sbin/* /bin/* /boot/* -maxdepth 1 -type f | xargs md5sum | sort
  ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
@@ -631,7 +638,7 @@ CREATE v_acked_history AS
 
 =head1 AUTHOR
 
-Oliver Falk E<lt>oliver@linux-kernel.atE<gt>
+Oliver Falk <oliver@linux-kernel.at>
 
 =head1 COPYRIGHT
 
