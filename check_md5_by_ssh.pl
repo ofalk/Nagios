@@ -536,7 +536,7 @@ CREATE TABLE acked_checksums (
 	REFERENCES history(id) ON DELETE CASCADE ON UPDATE NO ACTION
 ) ENGINE=InnoDB;
 
-CREATE v_acked_history AS
+CREATE VIEW v_acked_history AS
 	SELECT h.id, a.host, a.file, a.status, h.ts, h.who
 	FROM history h, acked_checksums a
 	WHERE a.history_id = h.id;
