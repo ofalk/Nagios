@@ -18,7 +18,7 @@
 #
 # Copyright 2004 Duke University
 # Written by Sean Dilda <sean@duke.edu>
-# Small changes by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
+# Small changes by Oliver Falk <oliver@linux-kernel.at>, 2012-2014
 
 # Version: 0.2.1
 

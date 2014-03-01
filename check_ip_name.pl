@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
+# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2014
 #               and Richard Kästner <richard.kaestner@kabsi.at>
 
 use Socket;

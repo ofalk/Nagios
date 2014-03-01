@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
+# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2014
 # Fetch some basic infos about some EMC² Symmetrix storage
 
 use strict;

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
+# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2014
 #
 # Event handler script to send events to TEC
 # Base on scripts by Thomas Hager and Werner Vesely

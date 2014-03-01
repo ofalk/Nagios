@@ -284,7 +284,7 @@ Oliver Falk E<lt>oliver@linux-kernel.atE<gt>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2012-2013. Oliver Falk. All rights reserved.
+Copyright (c) 2012-2014. Oliver Falk. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.

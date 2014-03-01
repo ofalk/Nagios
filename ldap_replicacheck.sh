@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2013
+# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2014
 
 LDAPSEARCH=/usr/bin/ldapsearch
 
