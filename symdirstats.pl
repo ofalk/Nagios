@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012
+# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2014
 # 
 # This script could use some love... Especially caching would be a _very_
 # good idea. Eg. based on my 'check_snmp_dskusg' script...
