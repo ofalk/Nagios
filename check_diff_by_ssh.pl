@@ -246,7 +246,7 @@ if($result && !param()) {
 	if(param('op') eq 'show_history_detail') {
 		print header, start_html('Diff - show history details');
 		my($sth, $db_hsh);
-		$sth = $dbh->prepare("SELECT host, file, status, ts, who FROM v_acked_history WHERE id = ? ORDER BY status");
+		$sth = $dbh->prepare("SELECT host, file, status, ts, who, diff FROM v_acked_history WHERE id = ? ORDER BY status");
 		$sth->bind_param(1, $history_id);
 		$sth->execute();
 		my $row = $sth->fetchrow_hashref();
@@ -257,7 +257,7 @@ if($result && !param()) {
 				foreach(keys %{$config->{prune_db}}) {
 					$config->{db} = $config->{prune_db}->{$_};
 					$dbh = getdbh();
-					$sth = $dbh->prepare("SELECT host, file, status, ts, who FROM v_acked_history WHERE id = ? ORDER BY status");
+					$sth = $dbh->prepare("SELECT host, file, status, ts, who, diff FROM v_acked_history WHERE id = ? ORDER BY status");
 					$sth->bind_param(1, $history_id);
 					$sth->execute();
 					$row = $sth->fetchrow_hashref();
@@ -281,14 +281,19 @@ if($result && !param()) {
 <tr>
 <th width="350px" align="left">File</th>
 <th width="240px" align="left">Status</th>
+<th width="400px" align="left">Diff</th>
 </tr>
-<tr><td colspan="2"><hr></td></tr>
+<tr><td colspan="3"><hr></td></tr>
 EOF
 			while(1) {
 				my $color = 'green';
 				$color = 'yellow' if $row->{status} ne 'ok';
 				$color = 'red' if $row->{status} eq 'changed';
-				print "<tr style=\"background-color:$color;\"><td>$row->{file}</td><td>$row->{status}</td></tr>\n";
+				print "<tr style=\"background-color:$color;\">\n";
+				print "<td>$row->{file}</td>\n";
+				print "<td>$row->{status}</td>\n";
+				print "<td><pre>$row->{diff}</pre></td>\n";
+				print "</tr>\n";
 				last unless $row = $sth->fetchrow_hashref();
 			}
 			print <<EOF;
@@ -544,9 +549,10 @@ check_diff_by_ssh.pl
  );
 
  CREATE VIEW v_acked_history AS
-  SELECT h.id, a.host, a.file, a.status, h.ts, h.who
+  SELECT h.id, a.host, a.file, a.status, a.diff, h.ts, h.who
   FROM history h, acked_diffs a
   WHERE a.history_id = h.id;
+
 
 =head1 CONFIGURATION
 
@@ -621,10 +627,10 @@ check_diff_by_ssh.pl
  your host. Adjust for your needs.
 
  define service {
-        use                     MYTEMPLATE
-        hostgroup_name          unixlinux-group
-        service_description     ConfigChanges
-        check_command           check_diff_by_ssh
+   use                     MYTEMPLATE
+   hostgroup_name          unixlinux-group
+   service_description     ConfigChanges
+   check_command           check_diff_by_ssh
  }
 
  Define the extended service information, so you can acknowledge the
@@ -633,19 +639,19 @@ check_diff_by_ssh.pl
  and the notes URL is usually free.
 
  define serviceextinfo{
-        hostgroup_name          unixlinux-group
-        service_description     ConfigChanges
-        notes_url               /test/ackdiff.pl?op=ack&host=$HOSTADDRESS$
+   hostgroup_name          unixlinux-group
+   service_description     ConfigChanges
+   notes_url               /test/ackdiff.pl?op=ack&host=$HOSTADDRESS$
  }
 
  If you have a SSH check - like I have - you may consider adding a
  service dependency like the following:
 
  define servicedependency {
-        hostgroup_name                  unixlinux-group
-        service_description             SSH
-        dependent_service_description   ConfigChanges
-        notification_failure_criteria   w,c
+   hostgroup_name                  unixlinux-group
+   service_description             SSH
+   dependent_service_description   ConfigChanges
+   notification_failure_criteria   w,c
  }
 
 =head1 AUTHOR
