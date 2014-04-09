@@ -18,7 +18,7 @@ Hash::Merge::set_behavior('RIGHT_PRECEDENT');
 
 # see pod for more information
 my $defconfig = Load('
-check_by_ssh: /opt/omd/versions/1.00/lib/nagios/plugins/check_by_ssh
+check_by_ssh: /opt/omd/versions/1.10/lib/nagios/plugins/check_by_ssh
 ssh_user: root
 command: find /usr/bin/* /usr/sbin/* /sbin/* /bin/* /boot/* /usr/lib* /lib* -maxdepth 1 -type f | xargs md5sum | sort
 ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
@@ -192,7 +192,7 @@ if($result && !param()) {
 			# Update status in the the database: 'changed'
 			# if not already done
 			$dbh->begin_work;
-			$sth = $dbh->prepare("UPDATE checksums SET status = 'changed', checksum = ?, old_checksum = ? WHERE host = ? AND file = ?");
+			$sth = $dbh->prepare("UPDATE checksums SET status = 'changed', checksum = ?, old_checksum = ? WHERE host = ? AND file COLLATE latin1_bin = ?");
 			foreach(keys %{$changed}) {
 				$sth->bind_param(1, $changed->{$_}->{new});
 				$sth->bind_param(2, $changed->{$_}->{old});
@@ -527,19 +527,19 @@ CREATE TABLE history (
 ) ENGINE=InnoDB;
 
 CREATE TABLE acked_checksums (
-	host		varchar(256) DEFAULT NULL,
-	file		varchar(2049) DEFAULT NULL,
-	status		enum('ok','added','removed','changed') NOT NULL,
-	history_id	int(11) NOT NULL,
-	KEY fk_history_id (history_id),
-	CONSTRAINT fk_history_id FOREIGN KEY (history_id)
-	REFERENCES history(id) ON DELETE CASCADE ON UPDATE NO ACTION
+        host            varchar(256) DEFAULT NULL,
+        file            varchar(2049) DEFAULT NULL,
+        status          enum('ok','added','removed','changed') NOT NULL,
+        history_id      int(11) NOT NULL,
+        KEY fk_history_id (history_id),
+        CONSTRAINT fk_history_id FOREIGN KEY (history_id)
+        REFERENCES history(id) ON DELETE CASCADE ON UPDATE NO ACTION
 ) ENGINE=InnoDB;
 
-CREATE VIEW v_acked_history AS
-	SELECT h.id, a.host, a.file, a.status, h.ts, h.who
-	FROM history h, acked_checksums a
-	WHERE a.history_id = h.id;
+CREATE v_acked_history AS
+        SELECT h.id, a.host, a.file, a.status, h.ts, h.who
+        FROM history h, acked_checksums a
+        WHERE a.history_id = h.id;
 
 =head1 CONFIGURATION
 
@@ -550,7 +550,7 @@ CREATE VIEW v_acked_history AS
  will override the defaults - so no need to copy the defaults, if you
  do not need to change them.
 
- check_by_ssh: /opt/omd/versions/1.00/lib/nagios/plugins/check_by_ssh
+ check_by_ssh: /opt/omd/versions/1.10/lib/nagios/plugins/check_by_ssh
  ssh_user: root
  command: find /usr/bin/* /usr/sbin/* /sbin/* /bin/* /boot/* -maxdepth 1 -type f | xargs md5sum | sort
  ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
@@ -642,7 +642,7 @@ Oliver Falk <oliver@linux-kernel.at>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2012-2014. Oliver Falk. All rights reserved.
+Copyright (c) 2012-2013. Oliver Falk. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
