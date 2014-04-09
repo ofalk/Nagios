@@ -200,11 +200,12 @@ if($result && !param()) {
 			# Update status in the the database: 'changed'
 			# if not already done
 			$dbh->begin_work;
-			$sth = $dbh->prepare("UPDATE files SET status = 'changed', diff = ? WHERE host = ? AND file = ?");
+			$sth = $dbh->prepare("UPDATE files SET status = 'changed', content = ?, diff = ? WHERE host = ? AND file = ?");
 			foreach(keys %{$changed}) {
-				$sth->bind_param(1, $changed->{$_}->{diff});
-				$sth->bind_param(2, $host);
-				$sth->bind_param(3, $_);
+				$sth->bind_param(1, $changed->{$_}->{'new'});
+				$sth->bind_param(2, $changed->{$_}->{diff});
+				$sth->bind_param(3, $host);
+				$sth->bind_param(4, $_);
 				$sth->execute();
 			}
 			$dbh->commit;
