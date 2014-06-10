@@ -24,7 +24,7 @@ use constant ERRORS => {
 	CRITICAL	=> 2,
 };
 
-# Our exit subrouting... Just because it's handy
+# Our exit subroutine... Just because it's handy
 sub do_exit {
 	my $code = shift;
 	my $mesg = shift;

@@ -35,7 +35,7 @@ die "No hostname given" unless $hostname;
 do_exit('CRITICAL', "No hostname given") unless $hostname;
 do_exit('CRITICAL', "No site given") unless $site;
 
-# Our exit subrouting... Just because it's handy
+# Our exit subroutine... Just because it's handy
 sub do_exit {
 	my $code = shift;
 	my $mesg = shift;

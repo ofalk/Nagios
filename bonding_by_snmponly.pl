@@ -35,7 +35,7 @@ my $t;
 my $status = 'OK';
 my $debug = 0;
 
-# Our exit subrouting... Just because it's handy
+# Our exit subroutine... Just because it's handy
 sub do_exit($) {
 	# For debug...
 	use Data::Dumper;
