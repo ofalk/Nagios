@@ -21,15 +21,15 @@ use Text::Diff;
 # see pod for more information
 my $defconfig = Load('
 ssh_user: "root"
-ssh_publickey: "/omd/sites/test/.ssh/id_dsa.pub"
-ssh_privatekey: "/omd/sites/test/.ssh/id_dsa"
+ssh_publickey: "/path/to/your/ssh-pub-key"
+ssh_privatekey: "/path/to/you/ssh-priv-key"
 
 db:
   driver: DBI:mysql
   name: filediff
-  user: filediff
-  pass: tripwire
-  port: 
+  user: root
+  pass:
+  port:
   host: localhost
 ');
 
@@ -55,7 +55,7 @@ use constant ERRORS => {
 	'UNKNOWN'	=> 3,
 };
 
-# Our exit subrouting... Just because it's handy
+# Our exit subroutine... Just because it's handy
 sub do_exit {
 	my $code = shift;
 	my $mesg = shift;
@@ -82,7 +82,7 @@ $config->{command} = 'tar Pcf - ' . join(' ', @{$config->{files}});
 if($result && !param()) {
 	do_exit('CRITICAL', 'No host given (use --host/-h)') unless $host;
 
-	my $sth = $dbh->prepare("SELECT file, content, status FROM files WHERE host = ?");
+	my $sth = $dbh->prepare("SELECT file, content, status, diff FROM files WHERE host = ?");
 	$sth->bind_param(1, $host);
 	$sth->execute();
 	my $db_hsh = $sth->fetchall_hashref('file');
@@ -125,6 +125,7 @@ if($result && !param()) {
 	} else {
 		# Check for added or deleted files and changed files
 		foreach(keys %{$fs_hsh}) {
+			next unless $fs_hsh->{$_};
 			# File existed before - no differences?
 			if($db_hsh->{$_}) {
 				my $diff = diff \$db_hsh->{$_}->{content}, \$fs_hsh->{$_}, { STYLE => 'Unified', };
@@ -138,12 +139,20 @@ if($result && !param()) {
 					};
 				}
 
+				# Changed (maybe again)
 				if($diff) {
 					# oops - content changed
 					$changed->{$_} = {
 						old	=> $db_hsh->{$_}->{content},
 						new	=> $fs_hsh->{$_},
 						diff	=> $diff,
+					};
+				# Changed (not again)
+				} elsif($db_hsh->{$_}->{status} eq 'changed') {
+					$changed->{$_} = {
+						old	=> undef,
+						new	=> $fs_hsh->{$_},
+						diff	=> $db_hsh->{$_}->{diff},
 					};
 				}
 			}
@@ -528,7 +537,8 @@ check_diff_by_ssh.pl
   file       VARCHAR(1024) DEFAULT NULL,
   content    TEXT,
   host       VARCHAR(256) DEFAULT NULL,
-  status     ENUM('ok', 'added', 'removed', 'changed', 'unavailable') NOT NULL
+  status     ENUM('ok', 'added', 'removed', 'changed', 'unavailable') NOT NULL,
+  diff       TEXT
  );
 
  CREATE TABLE history (
@@ -562,12 +572,13 @@ check_diff_by_ssh.pl
  Add the following content to a file called check_diff_by_ssh.yml
  if you need to override the defaults. Any values in the config file
  will override the defaults - so no need to copy the defaults, if you
- do not need to change them.
+ do not need to change them. However, you _NEED_ to adapt the paths
+ to the ssh public/private key, since the defaults will definitely
+ not work!
 
  ssh_user: "root"
- ssh_publickey: "/omd/sites/test/.ssh/id_dsa.pub"
- ssh_privatekey: "/omd/sites/test/.ssh/id_dsa"
-
+ ssh_publickey: "/path/to/your/ssh-pub-key"
+ ssh_privatekey: "/path/to/you/ssh-priv-key"
 
  files:
      - "/root/.ssh/authorized_keys"
@@ -621,7 +632,7 @@ check_diff_by_ssh.pl
 
  define command {
    command_name    check_diff_by_ssh
-   command_line    $USER5$/check_md5_by_ssh.pl --host $HOSTADDRESS$ $ARG1$
+   command_line    $USER5$/check_diff_by_ssh.pl --host $HOSTADDRESS$ $ARG1$
  }
 
  Define a service for your hostgroup(s) (used in this example) or
