@@ -73,9 +73,10 @@ while(<FH>) {
 close(FH);
 #print Dumper($fs_hsh) if $debug;
 
-if($nolines < 1) {
+if($nolines < 2) {
 	do_exit('OK', "No processes found that use outdated libraries! | processes=0");
 } else {
+	$nolines--;
 	do_exit('WARNING', "Found $nolines processes using outdated libraries:\n$output | processes=$nolines;;;");
 }
 
