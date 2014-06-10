@@ -20,7 +20,7 @@ Hash::Merge::set_behavior('RIGHT_PRECEDENT');
 my $defconfig = Load('
 check_by_ssh: /opt/omd/versions/1.01-nc.20140205/lib/nagios/plugins/check_by_ssh
 ssh_user: root
-command: lsof |grep lib |grep DEL|cut -f 1 -d \' \' | sort -u
+command: lsof |grep lib |grep DEL|grep -v /SYSV00000000 | cut -f 1 -d \' \' | sort -u
 ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
 check_by_ssh_opts: -E -t 180
 ');
