@@ -20,7 +20,7 @@ Hash::Merge::set_behavior('RIGHT_PRECEDENT');
 my $defconfig = Load('
 check_by_ssh: /opt/omd/versions/1.01-nc.20140205/lib/nagios/plugins/check_by_ssh
 ssh_user: root
-command: lsof |grep lib |grep DEL|grep -v /SYSV00000000 | cut -f 1 -d \' \' | sort -u
+command: lsof |grep -E \'lib|bin\' |grep DEL|grep -v /SYSV00000000 | cut -f 1 -d \' \' | sort -u
 ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
 check_by_ssh_opts: -E -t 180
 ');
@@ -74,10 +74,10 @@ close(FH);
 #print Dumper($fs_hsh) if $debug;
 
 if($nolines < 2) {
-	do_exit('OK', "No processes found that use outdated libraries! | processes=0");
+	do_exit('OK', "No processes found that use outdated libraries/binaries! | processes=0");
 } else {
 	$nolines--;
-	do_exit('WARNING', "Found $nolines processes using outdated libraries:\n$output | processes=$nolines;;;");
+	do_exit('WARNING', "Found $nolines processes using outdated libraries/binaries:\n$output | processes=$nolines;;;");
 }
 
 1;
