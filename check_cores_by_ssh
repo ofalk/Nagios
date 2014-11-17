@@ -1,0 +1,32 @@
+#!/bin/sh
+
+HOSTNAME=$1
+CHECKPATH=$2
+ADDOPTS=$3
+
+if [ -z $HOSTNAME ]; then
+        echo "No hostname given";
+        exit -1
+fi
+
+if [ -z $CHECKPATH ]; then
+        echo "No path given";
+        exit -1
+fi
+
+op="`ssh -oConnectTimeout=3 -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no root@"$HOSTNAME" find $CHECKPATH -type f -size +1k $ADDOPTS`"
+exitcode=$?
+
+if [ $exitcode == 255 ]; then
+	echo "SSH exited with non zero exit code: $op";
+	exit 1
+fi
+
+nocores=`echo "$op" |grep "^/" | wc -l`
+if [ $nocores -gt 0 ]; then
+	echo "ERROR: $nocores core(s) found:\n'$op' | cores=$nocores"
+	exit 2
+else
+	echo "OK: No cores found | cores=0"
+	exit 0
+fi
