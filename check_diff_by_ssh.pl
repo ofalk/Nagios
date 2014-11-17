@@ -27,9 +27,9 @@ ssh_privatekey: "/path/to/you/ssh-priv-key"
 db:
   driver: DBI:mysql
   name: filediff
-  user: root
-  pass:
-  port:
+  user: filediff
+  pass: tripwire
+  port: 
   host: localhost
 ');
 
@@ -384,7 +384,7 @@ EOF
 		}
 
 		# Query for the Diffs
-		$sth = $dbh->prepare("SELECT file, status, diff FROM files WHERE host = ? ORDER BY status DESC");
+		$sth = $dbh->prepare("SELECT file, status, diff, length(content) size FROM files WHERE host = ? ORDER BY status DESC");
 		$sth->bind_param(1, $host);
 		$sth->execute();
 		my $row = $sth->fetchrow_hashref();
@@ -395,7 +395,7 @@ EOF
 				foreach(keys %{$config->{prune_db}}) {
 					$config->{db} = $config->{prune_db}->{$_};
 					$dbh = getdbh();
-					$sth = $dbh->prepare("SELECT file, status, diff FROM files WHERE host = ? ORDER BY status DESC");
+					$sth = $dbh->prepare("SELECT file, status, diff, length(content) size FROM files WHERE host = ? ORDER BY status DESC");
 					$sth->bind_param(1, $host);
 					$sth->execute();
 					$row = $sth->fetchrow_hashref();
@@ -419,8 +419,9 @@ EOF
 <th width="350px" align="left">File</th>
 <th width="240px" align="left">Diff (i/a)</th>
 <th width="50px" align="left">Status</th>
+<th width="50px" align="left">Size</th>
 </tr>
-<tr><td colspan="3"><hr></td></tr>
+<tr><td colspan="4"><hr></td></tr>
 EOF
 			while(1) {
 				last if($row->{status} eq 'ok' && $mode eq 'short');
@@ -428,7 +429,7 @@ EOF
 				$color = 'yellow' if $row->{status} ne 'ok';
 				$color = 'red' if $row->{status} eq 'changed';
 				$row->{diff} = 'n/a' unless $row->{diff};
-				print "<tr style=\"background-color:$color;\"><td>$row->{file}</td><td><pre>$row->{diff}</pre></td><td>$row->{status}</td></tr>\n";
+				print "<tr style=\"background-color:$color;\"><td>$row->{file}</td><td><pre>$row->{diff}</pre></td><td>$row->{status}</td><td>$row->{size}</td></tr>\n";
 				last unless $row = $sth->fetchrow_hashref();
 			}
 			print <<EOF;
@@ -575,6 +576,7 @@ check_diff_by_ssh.pl
  do not need to change them. However, you _NEED_ to adapt the paths
  to the ssh public/private key, since the defaults will definitely
  not work!
+
 
  ssh_user: "root"
  ssh_publickey: "/path/to/your/ssh-pub-key"
