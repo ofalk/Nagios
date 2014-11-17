@@ -1,3 +1,5 @@
+#/bin/sh
+
 # Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2014
 # Base on some howto found on the internet
 
@@ -16,7 +18,6 @@
 
 LOG="/usr/bin/logger -p daemon.info -t send-service-trap --"
 $LOG "Sent trap"
-$LOG "/usr/bin/snmptrap -v 2c -c $2 $1 '' NAGIOS-NOTIFY-MIB::nSvcEvent nSvcHostname s \"$3\" nSvcDesc s \"$4\" nSvcStateID i $5 nSvcOutput s \"$6\"
+$LOG "/usr/bin/snmptrap -v 2c -c $2 $1 '' NAGIOS-NOTIFY-MIB::nSvcEvent nSvcHostname s \"$3\" nSvcDesc s \"$4\" nSvcStateID i $5 nSvcOutput s \"$6\""
 
 /usr/bin/snmptrap -v 2c -c $2 $1 '' NAGIOS-NOTIFY-MIB::nSvcEvent nSvcHostname s "$3" nSvcDesc s "$4" nSvcStateID i $5 nSvcOutput s "$6"
-

@@ -12,7 +12,7 @@ use Sys::Hostname;
 use Switch;
 
 # You might want to change this constants to reflect your setup
-use constant CHECK_BY_SSH	=> "/opt/omd/versions/0.56/lib/nagios/plugins/check_by_ssh";
+use constant CHECK_BY_SSH	=> "/opt/omd/versions/1.10/lib/nagios/plugins/check_by_ssh";
 use constant USER		=> 'root';
 use constant COMMAND		=> '/sbin/lsmod';
 use constant SSH_OPTS		=> '-oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no';
@@ -26,7 +26,7 @@ use constant ERRORS => {
 	'UNKNOWN'	=> 3,
 };
 
-# Our exit subroutine... Just because it's handy
+# Our exit subrouting... Just because it's handy
 sub do_exit {
 	my $code = shift;
 	my $mesg = shift;
@@ -59,7 +59,7 @@ close(FH);
 if($found) {
 	do_exit('OK', "OK: Found the module ($module) in the output:\n$output");
 } else {
-	do_exit('ERROR', "ERROR: Didn't find the module ($module) in the output:\n$output");
+	do_exit('CRITICAL', "CRITICAL: Didn't find the module ($module) in the output:\n$output");
 }
 
 1;

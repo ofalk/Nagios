@@ -304,6 +304,9 @@ MAIN: {
 				foreach my $reginclo (@includeonly) {
 					$skip = 0 if $_ =~ /$reginclo/i;
 				}
+				foreach my $regexcl (@regexclude) {
+					$skip = 1 if $_ =~ $regexcl;
+				}
 				next if $skip;
 			}
 			if (($table->{$_}->used_percent||0) > $critlvl) {

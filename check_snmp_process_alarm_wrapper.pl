@@ -8,7 +8,7 @@ use warnings;
 use File::Basename;
 my $dirname = dirname(__FILE__);
 
-use constant TIMEOUT => 80;
+use constant TIMEOUT => 200;
 
 $SIG{'ALRM'} = sub {
 	print "UNKNOWN: Timeout: No answer from host - ignoring\n";
