@@ -58,6 +58,8 @@ while(<FH>) {
 close(FH);
 my ($alloc, $free, $max) = split(/\s+/,$output);
 
+do_exit('UNKNOWN', 'Cannot parse output:' . "\n$output") if $alloc !~ /^\d+$/;
+do_exit('UNKNOWN', 'Cannot parse output:' . "\n$output") if $max !~ /^\d+$/;
 my $percent_used = $alloc / ($max/100);
 
 my $perfdata = sprintf("used=%.2f%%;$warn;$crit;; alloc=$alloc;;;;\n", $percent_used);
