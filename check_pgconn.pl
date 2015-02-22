@@ -13,6 +13,7 @@ use Getopt::Long;
 my $host;
 my $dbname = 'postgres';
 my $dbuser = 'postgres';
+my $dbport = 5432;
 my $warn = 70;
 my $crit = 80;
 
@@ -20,6 +21,7 @@ GetOptions(
 	"host|h=s"	=> \$host,
 	"dbname|d=s"	=> \$dbname,
 	"dbuser|u=s"	=> \$dbuser,
+	"dbport|p=i"	=> \$dbport,
 	"warning|w=i"	=> \$warn,
 	"critical|c=i"	=> \$crit,
 );
@@ -37,7 +39,7 @@ unless($host) {
 # Default to UNKNOWN status
 my $status = 3;
 
-my $Con = "DBI:Pg:dbname=$dbname;host=$host";
+my $Con = "DBI:Pg:dbname=$dbname;host=$host;port=$dbport";
 my $Dbh = DBI->connect($Con, $dbuser, '', {
 	RaiseError => 1
 }) || die "Unable to access Database $dbname on host $host as user $dbuser.\nError returned was: ". $DBI::errstr;

@@ -15,11 +15,13 @@ use Getopt::Long;
 my $host;
 my $dbname = 'postgres';
 my $dbuser = 'postgres';
+my $dbport = 5432;
 
 GetOptions(
 	"host|h=s"	=> \$host,
 	"dbname|d=s"	=> \$dbname,
 	"dbuser|u=s"	=> \$dbuser,
+	"dbport|p=i"	=> \$dbport,
 );
 
 
@@ -55,7 +57,7 @@ unless($host) {
 	exit -1;
 }
 
-my $Con = "DBI:Pg:dbname=$dbname;host=$host";
+my $Con = "DBI:Pg:dbname=$dbname;host=$host;port=$dbport";
 my $Dbh = DBI->connect($Con, $dbuser, '', {RaiseError =>1}) || die "Unable to access Database $dbname on host $host as user $dbuser.\nError returned was: ". $DBI::errstr;
 
 my $sql = "SELECT datname, current_query, timeofday()::TIMESTAMP-query_start, (CASE WHEN timeofday()::TIMESTAMP-query_start > INTERVAL '5 minutes' THEN TRUE ELSE FALSE END) AS slow, usename FROM pg_stat_activity;";
