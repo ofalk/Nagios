@@ -8,7 +8,7 @@
 
 dir=$(dirname $0)
 
-$dir/nag2tec $@
+#$dir/nag2tec $@
 $dir/nag2pan $@
 
 # Debugging
