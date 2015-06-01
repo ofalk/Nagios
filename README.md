@@ -15,3 +15,7 @@ Most SNMP based scripts have been developed during earlier times.
 
 Documentation you ask? Learn Perl, Python and Bash and you'll
 understand the scripts.
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/ofalk/nagios/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
