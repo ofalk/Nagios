@@ -20,7 +20,7 @@ Hash::Merge::set_behavior('RIGHT_PRECEDENT');
 my $defconfig = Load('
 check_by_ssh: /opt/omd/versions/1.10/lib/nagios/plugins/check_by_ssh
 ssh_user: root
-command: find /usr/bin/* /usr/sbin/* /sbin/* /bin/* /boot/* /usr/lib* /lib* -maxdepth 1 -type f | xargs md5sum | sort
+command: find /usr/bin/* /usr/sbin/* /sbin/* /bin/* /boot/* /usr/lib* /lib* -maxdepth 1 -type f -or -type l | xargs md5sum | sort
 ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
 check_by_ssh_opts: -E -t 180
 
