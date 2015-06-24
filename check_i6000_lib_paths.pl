@@ -59,14 +59,16 @@ if($lib && !$num_paths) {
 # Command line mode 9-}
 do_exit('CRITICAL', 'No host given (use --host/-h)') unless $host;
 do_exit('CRITICAL', 'No datazone given (use --dz)') unless $dz;
-do_exit('CRITICAL', 'No site given (use --site)') unless $site;
+do_exit('CRITICAL', 'No site given (use --site)') unless defined $site;
 do_exit('CRITICAL', 'No number of paths given (use --num_paths)') unless $num_paths;
 
 my $COMMAND;
+my $scmd = '';
+$scmd = "_$site" if $site;
 unless($lib) {
-	$COMMAND = "ls -1 /dev/tape/by-id/i6000_$site" . "_dz$dz" . "_drv* | wc -l";
+	$COMMAND = "ls -1 /dev/tape/by-id/i6000$scmd" . "_dz$dz" . "_drv* | wc -l";
 } else {
-	$COMMAND = "ls -1 /dev/tape/by-id/i6000_$site" . "_dz$dz | wc -l";
+	$COMMAND = "ls -1 /dev/tape/by-id/i6000$scmd" . "_dz$dz | wc -l";
 }
 
 open(FH, CHECK_BY_SSH . ' -H ' . " $host  $OPTS " . '-l ' . USER . ' ' . SSH_OPTS . ' -C "' . $COMMAND . '" |') or do_exit('UNKNOWN', "Remote command execution on '$host' failed");
