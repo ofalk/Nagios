@@ -66,7 +66,7 @@ sub total_human  { my $self = shift; eval { _convert($self->total * $self->sau);
 sub used_human   { my $self = shift; eval { _convert($self->used * $self->sau); } };
 sub used_percent { my $self = shift; eval { sprintf("%.2f", $self->used / ($self->total / 100)); } };;
 
-# Only eavailable in the extended table... Take care!
+# Only available in the extended table... Take care!
 sub used_inodes_percent { my $self = shift; $self->get_single($extendedstorbase . '.10.' . $self->{extidx}); };
 sub extindex            { my $self = shift; $self->{extidx}; };
 
@@ -306,7 +306,7 @@ MAIN: {
                 $ex = $OK;
             }
 
-            if ($inodes) {
+            if ($inodes && $table->extindex) {
                 if ($table->used_inodes_percent > $inodes_critlvl) {
                     $message .= $table->used_inodes_percent . "\% > $inodes_critlvl\% inodes used!; ";
                     $perfdata .= "iusg=" . $table->used_inodes_percent . ";$inodes_warnlvl;$inodes_critlvl;0; ";
