@@ -2,7 +2,7 @@
 #
 # G.P.A.D. = General Purpose Ajax Dispatcher
 # XML::RPC on steroids 8-Q
-# 
+#
 # This was an idea to ease the development of small sites
 # with AJAX. Very low usage at the moment, but maybe someone
 # has interest in it.
