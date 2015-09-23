@@ -17,6 +17,7 @@ open(FH, "ssh -oConnectTimeout=3 -oNumberOfPasswordPrompts=0 -oPasswordAuthentic
 while(<FH>) {
 	$lines++;
 	$_ =~ s/  *$//;
+	$_ =~ s/\|/&124;/g;
 	next if /.*root.*\[.*\]$/;
 	$len += length($_);
 	$top .= $_ if $len <= 40960; # I'm not totally sure what the limit is :-/
