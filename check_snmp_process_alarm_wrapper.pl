@@ -7,6 +7,7 @@ use strict;
 use warnings;
 use File::Basename;
 my $dirname = dirname(__FILE__);
+my $retval = 0;
 
 use constant TIMEOUT => 200;
 
@@ -21,4 +22,6 @@ alarm(TIMEOUT);
 my @argv;
 push @argv, "'$_'" foreach @ARGV;
 
-exec(dirname(__FILE__) . "/check_snmp_process " . join(" ", @argv));
+system(dirname(__FILE__) . "/check_snmp_process " . join(" ", @argv));
+$retval = $? >> 8;
+exit $retval;
