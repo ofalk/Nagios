@@ -79,6 +79,7 @@ sub _check_qaddr_res_addr($$) {
 		$overallstatus = $status;
 	} elsif($status ne 'OK' && !@addr) {
 		$msg .= "$status: $qname seems to be unresolvable!\n";
+		$overallstatus = $status;
 	}
 	return @addr;
 }

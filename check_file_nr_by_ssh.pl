@@ -14,7 +14,7 @@ use Switch;
 # You might want to change this constants to reflect your setup
 use constant CHECK_BY_SSH	=> "/opt/omd/versions/1.10/lib/nagios/plugins/check_by_ssh";
 use constant USER		=> 'root';
-use constant COMMAND		=> '/sbin/lsmod';
+use constant COMMAND		=> 'cat /proc/sys/fs/file-nr';
 use constant SSH_OPTS		=> '-oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no';
 
 our $VERSION = '0.1';
@@ -36,31 +36,37 @@ sub do_exit {
 
 my $OPTS = '-E -t 120';
 
-my ($host, $module);
+my $warn = 90;
+my $crit = 95;
+my $host;
 Getopt::Long::Configure ('pass_through');
 my $result = GetOptions (
 	"host|h=s"	=> \$host,
-	"module|m=s"	=> \$module,
+	"warn|w=i"	=> \$warn,
+	"crit|w=i"	=> \$crit,
 );
 
 do_exit('CRITICAL', 'No host given (use --host/-h)') unless $host;
-do_exit('CRITICAL', 'No module given (use --modules/-m)') unless $module;
+do_exit('CRITICAL', 'Warning level must be lower than critical level!') if $warn >= $crit;
 
-my $found = 0;
 my $output;
 
 open(FH, CHECK_BY_SSH . ' -H ' . " $host  $OPTS " . '-l ' . USER . ' ' . SSH_OPTS . ' -C "' . COMMAND . '" |') or do_exit('UNKNOWN', "Remote command execution on '$host' failed");
 while(<FH>) {
-	$found = 1 if /^$module/;
 	$output .= $_;
 }
 close(FH);
+my ($alloc, $free, $max) = split(/\s+/,$output);
 
-if($found) {
-	do_exit('OK', "OK: Found the module ($module) in the output:\n$output");
-} else {
-	do_exit('CRITICAL', "CRITICAL: Didn't find the module ($module) in the output:\n$output");
-}
+do_exit('UNKNOWN', 'Cannot parse output:' . "\n$output") if $alloc !~ /^\d+$/;
+do_exit('UNKNOWN', 'Cannot parse output:' . "\n$output") if $max !~ /^\d+$/;
+my $percent_used = $alloc / ($max/100);
+
+my $perfdata = sprintf("used=%.2f%%;$warn;$crit;; alloc=$alloc;;;;\n", $percent_used);
+
+do_exit('CRITICAL', "CRITICAL: Used file handles > $crit ($alloc / $max) | $perfdata") if $percent_used >  $crit;
+do_exit('WARNING', "WARNING: Used file handles > $warn ($alloc / $max) | $perfdata") if $percent_used > $warn;
+do_exit('OK', "OK: Used file handles is OK ($alloc / $max) | $perfdata");
 
 1;
 
@@ -68,15 +74,18 @@ __END__
 
 =head1 NAME
 
-check_kernel_module_by_ssh.pl
+check_file_nr_by_ssh.pl
 
 =head1 SYNOPSIS
 
-    check_kernel_module_by_ssh.pl -h <hostname> -m <module>
+    check_file_nr_by_ssh.pl -h <hostname> [ -w <warn> ] [ -c <crit> ]
+
+    critical default => 95
+    warning default => 90
 
 =head1 DESCRIPTION
 
-Nagios Script to check if some kernel module is loaded
+Nagios ccript to check if machine runs out of file handles
 
 =head1 AUTHOR
 

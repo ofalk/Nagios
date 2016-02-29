@@ -1,21 +1,27 @@
-#!/bin/sh
+#!/usr/bin/perl
 
-# Copyright (c) by Oliver Falk <oliver@linux-kernel.at>, 2012-2014
+use strict;
+use warnings;
 
-HOSTNAME=$1
+my $hostname=$ARGV[0];
 
-if [ -z $HOSTNAME ]; then
-        echo "No hostname given";
-        exit -1
-fi
+unless($hostname) {
+	print "No hostname given\n";
+	exit -1;
+}
 
-op="`ssh -oConnectTimeout=3 -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null root@"$HOSTNAME" ps -ef|wc -l`"
-exitcode=$?
+my $top = "";
+my $lines = -7;
+my $len = 0;
+open(FH, "ssh -oConnectTimeout=3 -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no root\@$hostname 'TERM=vt220 COLUMNS=512 top -bcn1'|");
+while(<FH>) {
+	$lines++;
+	$_ =~ s/  *$//;
+	$_ =~ s/\|/&124;/g;
+	next if /.*root.*\[.*\]$/;
+	$len += length($_);
+	$top .= $_ if $len <= 40960; # I'm not totally sure what the limit is :-/
+}
 
-if [ $exitcode == 255 ]; then
-	echo "SSH exited with non zero exit code: $op";
-	exit 1
-fi
-
-echo "Total procs: $op | procs=$op;;;"
+print "Total procs: $lines\n$top | procs=$lines;;;";
 exit 0

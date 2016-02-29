@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+# Forward to all our eventhandlers
+#
+# In case you have several event handlers, this can be used
+# to dispatch the events to all your eventhandlers
+# There is no configuration file, just adapt the script.
+
+dir=$(dirname $0)
+
+#$dir/nag2tec $@
+$dir/nag2pan $@
+
+# Debugging
+#echo "`comm -3 <(declare | sort) <(declare -f | sort)`" >> /tmp/asdf
+#echo "$@" >> /tmp/asdf
+
+exit 0

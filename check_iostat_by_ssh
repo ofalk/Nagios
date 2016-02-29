@@ -29,10 +29,10 @@ CPU_IOWAIT_MAJOR=`echo $CPU_IOWAIT | cut -d "." -f 1`
 if [ ${CPU_REPORT_SECTIONS} -ge 6 ]; then
 	CPU_STEAL=`echo $CPU_REPORT | cut -d ";" -f 6`
 	CPU_IDLE=`echo $CPU_REPORT | cut -d ";" -f 7`
-	NAGIOS_DATA="user=${CPU_USER}% system=${CPU_SYSTEM}% iowait=${CPU_IOWAIT}% idle=${CPU_IDLE}% nice=${CPU_NICE}% steal=${CPU_STEAL}% | CpuUser=${CPU_USER};CpuSystem=${CPU_SYSTEM};CpuIoWait=${CPU_IOWAIT};CpuIdle=${CPU_IDLE};CpuNice=${CPU_NICE};CpuSteal=${CPU_STEAL};$WARNING_THRESHOLD;$CRITICAL_THRESHOLD"
+	NAGIOS_DATA="user=${CPU_USER}% system=${CPU_SYSTEM}% iowait=${CPU_IOWAIT}% idle=${CPU_IDLE}% nice=${CPU_NICE}% steal=${CPU_STEAL}% | CpuUser=${CPU_USER} CpuSystem=${CPU_SYSTEM} CpuIoWait=${CPU_IOWAIT} CpuIdle=${CPU_IDLE} CpuNice=${CPU_NICE} CpuSteal=${CPU_STEAL}"
 else
 	CPU_IDLE=`echo $CPU_REPORT | cut -d ";" -f 6`
-	NAGIOS_DATA="user=${CPU_USER}% system=${CPU_SYSTEM}% iowait=${CPU_IOWAIT}% idle=${CPU_IDLE}% nice=${CPU_NICE}% | CpuUser=${CPU_USER};CpuSystem=${CPU_SYSTEM};CpuIoWait=${CPU_IOWAIT};CpuIdle=${CPU_IDLE};CpuNice=${CPU_NICE};$WARNING_THRESHOLD;$CRITICAL_THRESHOLD"
+	NAGIOS_DATA="user=${CPU_USER}% system=${CPU_SYSTEM}% iowait=${CPU_IOWAIT}% idle=${CPU_IDLE}% nice=${CPU_NICE}% | CpuUser=${CPU_USER} CpuSystem=${CPU_SYSTEM} CpuIoWait=${CPU_IOWAIT} CpuIdle=${CPU_IDLE} CpuNice=${CPU_NICE}"
 fi
 
 echo "OK: $NAGIOS_DATA"

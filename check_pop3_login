@@ -1,0 +1,29 @@
+#!/usr/bin/perl
+
+	use Net::POP3;
+
+	if ($#ARGV != 2)
+	{
+		print "Error in usage: hostname, username & password required";
+		exit 3;
+	}
+
+	$hostname = $ARGV[0];
+	$username = $ARGV[1];
+	$password = $ARGV[2];
+
+	$pop = Net::POP3->new($hostname, Timeout => 60);
+	$msgnum = $pop->login($username, $password);
+	if ( !defined($msgnum) )
+	{
+		print "Critical: unable to log on\r\n";
+		$retval = 2;
+	} else
+	{
+		$retval = 0;
+		print "OK: successfully logged in.\r\n";
+	}
+
+	$pop->quit;
+	exit $retval;
+

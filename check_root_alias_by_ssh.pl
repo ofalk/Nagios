@@ -14,7 +14,7 @@ use Switch;
 # You might want to change this constants to reflect your setup
 use constant CHECK_BY_SSH	=> "/opt/omd/versions/1.10/lib/nagios/plugins/check_by_ssh";
 use constant USER		=> 'root';
-use constant COMMAND		=> '/sbin/lsmod';
+use constant COMMAND		=> 'grep ^root: /etc/aliases';
 use constant SSH_OPTS		=> '-oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no';
 
 our $VERSION = '0.1';
@@ -36,30 +36,30 @@ sub do_exit {
 
 my $OPTS = '-E -t 120';
 
-my ($host, $module);
+my ($host, $expected);
 Getopt::Long::Configure ('pass_through');
 my $result = GetOptions (
 	"host|h=s"	=> \$host,
-	"module|m=s"	=> \$module,
+	"expected|e=s"	=> \$expected,
 );
 
 do_exit('CRITICAL', 'No host given (use --host/-h)') unless $host;
-do_exit('CRITICAL', 'No module given (use --modules/-m)') unless $module;
+do_exit('CRITICAL', 'No expected string given (use --expected/-e)') unless $expected;
 
 my $found = 0;
 my $output;
 
 open(FH, CHECK_BY_SSH . ' -H ' . " $host  $OPTS " . '-l ' . USER . ' ' . SSH_OPTS . ' -C "' . COMMAND . '" |') or do_exit('UNKNOWN', "Remote command execution on '$host' failed");
 while(<FH>) {
-	$found = 1 if /^$module/;
+	$found = 1 if /$expected/;
 	$output .= $_;
 }
 close(FH);
 
 if($found) {
-	do_exit('OK', "OK: Found the module ($module) in the output:\n$output");
+	do_exit('OK', "OK: Found the expected string ($expected) in the output:\n$output");
 } else {
-	do_exit('CRITICAL', "CRITICAL: Didn't find the module ($module) in the output:\n$output");
+	do_exit('CRITICAL', "CRITICAL: Didn't find the expected string ($expected) in the output:\n$output");
 }
 
 1;
@@ -68,15 +68,15 @@ __END__
 
 =head1 NAME
 
-check_kernel_module_by_ssh.pl
+check_root_alias_by_ssh.pl
 
 =head1 SYNOPSIS
 
-    check_kernel_module_by_ssh.pl -h <hostname> -m <module>
+    check_root_alias_by_ssh.pl -h <hostname> -e <expected string>
 
 =head1 DESCRIPTION
 
-Nagios Script to check if some kernel module is loaded
+Nagios Script to check if the aliases file contains some forward for root
 
 =head1 AUTHOR
 

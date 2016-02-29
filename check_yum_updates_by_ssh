@@ -9,7 +9,7 @@ if [ -z $HOSTNAME ]; then
         exit -1
 fi
 
-ssh -oConnectTimeout=3 -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no root@"$HOSTNAME" '/usr/lib*/nagios/plugins/check_updates -w 1 -c 50 -t 110'
+ssh -oConnectTimeout=3 -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no root@"$HOSTNAME" '/usr/lib*/nagios/plugins/check_updates -w 1 -c 50 -t 110 2>/dev/null'
 exitcode=$?
 
 if [ $exitcode == 255 ]; then

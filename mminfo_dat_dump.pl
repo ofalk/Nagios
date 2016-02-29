@@ -10,6 +10,7 @@ use lib qw(/opt/omd/sites/test/etc/nagios/conf.d/hosts/unix-linux/);
 use SITE qw/$SITE/;
 my $site = $SITE;
 
+use Data::Dumper;
 use Storable qw/lock_retrieve/;
 
 my $saves;
@@ -18,5 +19,8 @@ unless($saves = lock_retrieve('/tmp/' . $site . '_mminfo.dat')) {
 	croak("ERROR I/O problem while storing cachefile!");
 }
 
-use Data::Dumper;
-print Dumper($saves);
+if($ARGV[0]){
+	print Dumper($saves->{$ARGV[0]});
+} else {
+	print Dumper($saves);
+}
