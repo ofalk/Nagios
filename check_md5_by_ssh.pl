@@ -18,7 +18,7 @@ Hash::Merge::set_behavior('RIGHT_PRECEDENT');
 
 # see pod for more information
 my $defconfig = Load('
-check_by_ssh: /opt/omd/versions/1.10/lib/nagios/plugins/check_by_ssh
+check_by_ssh: /opt/omd/versions/1.30/lib/nagios/plugins/check_by_ssh
 ssh_user: root
 command: find /usr/bin/* /usr/sbin/* /sbin/* /bin/* /boot/* /usr/lib* /lib* -maxdepth 1 -type f -or -type l | xargs md5sum | sort
 ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
@@ -550,7 +550,7 @@ CREATE v_acked_history AS
  will override the defaults - so no need to copy the defaults, if you
  do not need to change them.
 
- check_by_ssh: /opt/omd/versions/1.10/lib/nagios/plugins/check_by_ssh
+ check_by_ssh: /opt/omd/versions/1.30/lib/nagios/plugins/check_by_ssh
  ssh_user: root
  command: find /usr/bin/* /usr/sbin/* /sbin/* /bin/* /boot/* -maxdepth 1 -type f | xargs md5sum | sort
  ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
