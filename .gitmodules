@@ -1,3 +1,6 @@
+[submodule "check_ssl_cert"]
+	path = check_ssl_cert
+	url = https://github.com/matteocorti/check_ssl_cert.git
 [submodule "websphere-nagios"]
 	path = websphere-nagios
 	url = https://github.com/yannlambret/websphere-nagios.git
