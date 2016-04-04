@@ -18,7 +18,7 @@ Hash::Merge::set_behavior('RIGHT_PRECEDENT');
 
 # see pod for more information
 my $defconfig = Load('
-check_by_ssh: /opt/omd/versions/1.10/lib/nagios/plugins/check_by_ssh
+check_by_ssh: /opt/omd/versions/1.30/lib/nagios/plugins/check_by_ssh
 ssh_user: root
 command: lsof |grep -E \'lib|bin\' |grep DEL|grep -v /SYSV00000000 | grep -v /var/lib/sss/mc | cut -f 1 -d \' \' | sort -u
 ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
@@ -106,7 +106,7 @@ since they use libraries that have already been updated.
  will override the defaults - so no need to copy the defaults, if you
  do not need to change them.
 
- check_by_ssh: /opt/omd/versions/1.10/lib/nagios/plugins/check_by_ssh
+ check_by_ssh: /opt/omd/versions/1.30/lib/nagios/plugins/check_by_ssh
  ssh_user: root
  command: lsof |grep lib |grep DEL|cut -f 1 -d " " | sort -u
  ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
