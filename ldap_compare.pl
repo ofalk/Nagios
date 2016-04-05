@@ -80,7 +80,10 @@ $ldap = Net::LDAP->new(
 
 my $page = Net::LDAP::Control::Paged->new( size => 100 );
 $msg = $ldap->bind($ldap_login, password => $ldap_pw);
-$msg->code && die $msg->error;
+if($msg->code) {
+	warn "Cannot check, problem binding: " . $msg->error;
+	exit ERRORS->{'UNKNOWN'};
+}
 
 my @args = (
 	base     => $ldap_base,
