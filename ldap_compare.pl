@@ -76,7 +76,11 @@ die "No ldap password given" unless defined $ldap_pw;
 $ldap = Net::LDAP->new(
 	$ldap_server,
 	onerror => 'warn',
-) or die "$@";
+);
+if($@) {
+	warn "Connection error: $@";
+	exit ERRORS->{'UNKNOWN'};
+}
 
 my $page = Net::LDAP::Control::Paged->new( size => 100 );
 $msg = $ldap->bind($ldap_login, password => $ldap_pw);
@@ -122,6 +126,7 @@ if($cookie) {
         $page->cookie($cookie);
         $page->size(0);
         $ldap->search(@args);
+		exit ERRORS->{'UNKNOWN'};
 }
 
 eval { $old_cust = ${\thaw($cache->get($cache_key))} };
