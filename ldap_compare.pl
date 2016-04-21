@@ -41,20 +41,24 @@ my $ldap_secret = '/etc/ldap.secret';
 my $ldap_pw;
 my $ldap_filter = '(objectclass=*)';
 my @attrs;
+my $html = 0;
+my $test = 0;
 
 my $res = GetOptions(
-	'host|h=s'     => \$ldap_server,
-	'base|b=s'     => \$ldap_base,
+    'host|h=s'     => \$ldap_server,
+    'base|b=s'     => \$ldap_base,
     'login|D=s'    => \$ldap_login,
     'secret|s=s'   => \$ldap_secret,
     'password|w=s' => \$ldap_pw,
-	'filter|f=s'   => \$ldap_filter,
-	'attrs|a=s'    => \@attrs,
+    'filter|f=s'   => \$ldap_filter,
+    'attrs|a=s'    => \@attrs,
+    'html'         => \$html,
+    'test'         => \$test,
 );
 
 my $cache = Cache::File->new(
     cache_root      => '/var/tmp/ldap.cache',
-	default_expires => '2 days',
+    default_expires => '2 days',
 );
 my $cache_key = $ldap_server . $ldap_base . $ldap_login . $ldap_secret . $ldap_filter . join(',', @attrs);
 
@@ -74,26 +78,26 @@ if (-f $ldap_secret && ! $ldap_pw) {
 die "No ldap password given" unless defined $ldap_pw;
 
 $ldap = Net::LDAP->new(
-	$ldap_server,
-	onerror => 'warn',
+    $ldap_server,
+    onerror => 'warn',
 );
 if($@) {
-	warn "Connection error: $@";
-	exit ERRORS->{'UNKNOWN'};
+    warn "Connection error: $@";
+    exit ERRORS->{'UNKNOWN'};
 }
 
 my $page = Net::LDAP::Control::Paged->new( size => 100 );
 $msg = $ldap->bind($ldap_login, password => $ldap_pw);
 if($msg->code) {
-	warn "Cannot check, problem binding: " . $msg->error;
-	exit ERRORS->{'UNKNOWN'};
+    warn "Cannot check, problem binding: " . $msg->error;
+    exit ERRORS->{'UNKNOWN'};
 }
 
 my @args = (
-	base     => $ldap_base,
-	filter   => $ldap_filter,
-	attrs    => [ @attrs ],
-	control  => [ $page ],
+    base     => $ldap_base,
+    filter   => $ldap_filter,
+    attrs    => [ @attrs ],
+    control  => [ $page ],
 );
 
 #use Data::Dumper; warn Dumper(@args);
@@ -101,19 +105,19 @@ my @args = (
 my ($new_cust, $old_cust);
 my $cookie;
 while(1) {
-	$msg = $ldap->search(@args);
+    $msg = $ldap->search(@args);
 
-	# Only continue on LDAP_SUCCESS
-	$msg->code && die $msg->error;
+    # Only continue on LDAP_SUCCESS
+    $msg->code && die $msg->error;
 
-	for (my $i = 0; $i < $msg->count; $i++) {
-		#print "dn: " . $msg->entry($i)->dn . "\n";
-		foreach my $attr ($msg->entry($i)->attributes) {
-		    #print "$attr: $_\n" foreach($msg->entry($i)->get_value($attr));
-			push @{$new_cust->{$msg->entry($i)->dn}}, "$attr: $_" foreach($msg->entry($i)->get_value($attr));
-		}
-		#print "\n";
-	}
+    for (my $i = 0; $i < $msg->count; $i++) {
+        #print "dn: " . $msg->entry($i)->dn . "\n";
+        foreach my $attr ($msg->entry($i)->attributes) {
+            #print "$attr: $_\n" foreach($msg->entry($i)->get_value($attr));
+            push @{$new_cust->{$msg->entry($i)->dn}}, "$attr: $_" foreach($msg->entry($i)->get_value($attr));
+        }
+        #print "\n";
+    }
     # Get cookie from paged control
     my ($resp) = $msg->control(LDAP_CONTROL_PAGED) or last;
     $cookie = $resp->cookie or last;
@@ -122,15 +126,25 @@ while(1) {
 }
 
 if($cookie) {
-        # We had an abnormal exit, so let the server know we do not want any more
-        $page->cookie($cookie);
-        $page->size(0);
-        $ldap->search(@args);
-		exit ERRORS->{'UNKNOWN'};
+    # We had an abnormal exit, so let the server know we do not want any more
+    $page->cookie($cookie);
+    $page->size(0);
+    $ldap->search(@args);
+    exit ERRORS->{'UNKNOWN'};
 }
 
 eval { $old_cust = ${\thaw($cache->get($cache_key))} };
 $cache->set($cache_key, safeFreeze($new_cust));
+
+# Testdata enable for development / testing using command line switch --test
+$old_cust = {
+    'CN=Domain Admins,CN=Users,DC=ww,DC=omv,DC=com' => [
+        'description: *IDM Managed Group* Designated administrators of the domain',
+        'member: CN=xtestuser,CN=Users,DC=ww,DC=omv,DC=com',
+        'whenChanged: 20160420102257.0Z'
+    ],
+} if $test;
+
 
 #use Data::Dumper; warn Dumper($new_cust);
 #use Data::Dumper; warn Dumper($old_cust);
@@ -148,13 +162,13 @@ foreach my $dn (keys %{$new_cust}) {
         $old_entry .= "$_\n" foreach(@{$old_cust->{$dn}});
         my $diff = diff \$old_entry, \$new_entry, { STYLE => 'Table' };
         if($diff) {
-			$to_print .= "Changes to $dn:\n$diff";
+            $to_print .= "Changes to $dn:\n$diff";
             $to_print .= "$dn:\n" . $new_entry . "\n";
         }
     } else {
-		$to_print .= "$dn has been added:\n";
-		$to_print .= " - $_\n" foreach @{$new_cust->{$dn}};
-		$to_print .= "\n";
+        $to_print .= "$dn has been added:\n";
+        $to_print .= " - $_\n" foreach @{$new_cust->{$dn}};
+        $to_print .= "\n";
     }
 }
 
@@ -164,10 +178,14 @@ foreach my $dn (keys %{$old_cust}) {
     $to_print .= "$_\n" foreach @{$old_cust->{$dn}};
 }
 
+$to_print =~ s/\n/<br\/>/g if $html;
+$to_print = "<code>$to_print</code" if $html && $to_print;
+
 if($to_print) {
-	print $to_print ."\n";
-	exit ERRORS->{'CRITICAL'};
+	print "CRITICAL |\n";
+    print $to_print . "\n";
+    exit ERRORS->{'CRITICAL'};
 } else {
-	print "No modifications found!\n";
-	exit ERRORS->{'OK'};
+    print "No modifications found!|\n";
+    exit ERRORS->{'OK'};
 }
