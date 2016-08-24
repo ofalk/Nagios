@@ -20,7 +20,7 @@ Hash::Merge::set_behavior('RIGHT_PRECEDENT');
 my $defconfig = Load('
 check_by_ssh: /opt/omd/versions/1.30/lib/nagios/plugins/check_by_ssh
 ssh_user: root
-command: lsof |grep -E \'lib|bin\' |grep DEL|grep -v /SYSV00000000 | grep -v /var/lib/sss/mc | cut -f 1 -d \' \' | sort -u
+command: lsof >/dev/null|grep -E \'lib|bin\' |grep DEL|grep -v /SYSV00000000 | grep -v /var/lib/sss/mc | cut -f 1 -d \' \' | sort -u
 ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
 check_by_ssh_opts: -E -t 180
 ');
@@ -108,7 +108,7 @@ since they use libraries that have already been updated.
 
  check_by_ssh: /opt/omd/versions/1.30/lib/nagios/plugins/check_by_ssh
  ssh_user: root
- command: lsof |grep lib |grep DEL|cut -f 1 -d " " | sort -u
+ command: lsof >/dev/null|grep lib |grep DEL|cut -f 1 -d " " | sort -u
  ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
  check_by_ssh_opts: -E -t 180
 
