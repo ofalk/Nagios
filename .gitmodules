@@ -4,3 +4,6 @@
 [submodule "websphere-nagios"]
 	path = websphere-nagios
 	url = https://github.com/yannlambret/websphere-nagios.git
+[submodule "nagios-plugin-check_galera_cluster"]
+	path = nagios-plugin-check_galera_cluster
+	url = https://github.com/fridim/nagios-plugin-check_galera_cluster.git
