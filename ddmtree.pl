@@ -26,7 +26,7 @@ if(!$host){
 # Contact DataDomain
 
 my $i = 0;
-open(FH,"ssh ddboost\@$host mtree list 2>&1 |") or die;
+open(FH,"ssh nagios\@$host mtree list 2>&1 |") or die;
 while (<FH>) {
 	$i++;
 	next unless /^\/data\//;

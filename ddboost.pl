@@ -42,7 +42,7 @@ if(!$host){
 #################################################################################
 # Contact DataDomain
 
-open(FH,"ssh ddboost\@$host ddboost show connections 2>&1 |") or die;
+open(FH,"ssh nagios\@$host ddboost show connections 2>&1 |") or die;
 @OUT = <FH>;
 close FH;
 
