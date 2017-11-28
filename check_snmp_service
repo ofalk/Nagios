@@ -1,0 +1,114 @@
+#!/bin/bash
+
+#set -x
+
+#----------------------------------------------------------------------
+#
+# Author: Martin Fuerstenau, Oce Printing Systems
+# Date:   5.7.2008
+#
+# Purpose:
+# Check the function of the SNMP service it self and report version and operating system
+#
+# How it works:
+# 
+# It tries to get SNMPv2-MIB::sysDescr.0. Because this is a standard value it should work 
+# on all operating systems. Beside the OK message it displays the contet of sysDescr.0
+# and so you can mostly see which OS/Release is installed.
+#
+# Changes:
+# 
+# - None
+#
+# Synopsis:
+# 
+# /usr/lib/nagios/ops_plugins/check_snmp_service -H <ip-address/hostname> -C <comminunity>
+#
+#----------------------------------------------------------------------
+
+
+export SCRIPT_NAME=`basename $0`
+export RETRY=7
+
+export NP=0
+export NoA=$#
+
+function usage()
+{
+
+echo
+echo "Usage: $SCRIPT_NAME [Options]"
+echo 
+echo "Options: -H <ip-address/hostname>"
+echo "         -C <community>"
+echo "         -h for help"
+echo
+}
+
+###############################################################
+# --- MAIN - Hauptverarbeitung --------------------------------
+###############################################################
+
+if [ $NoA -lt 4 ] || [ $NoA -gt 4 ]
+   then
+
+   if [ $NoA -eq 1 ] && [ $1 = "-h" ]
+      then
+      usage
+      exit 0
+      else
+      echo
+      echo "Invalid number of arguments supplied"
+      usage
+      exit 3
+   fi
+fi
+
+if [ $NoA -eq 4 ]
+   then
+   # Um die Funktion in Nagios Variabel nutzen zu können, wird in check_commands.cfg IMMER
+   # die Option -f angegeben. Wenn aber kein Wet übergeben wird muss trotzdem -f verarbeitet 
+   # werden. In diesem Fall mit dem Null-Befehl
+
+   while getopts H:C: OPTION
+         do
+
+         case "$OPTION"
+              in
+   
+              H) HOST=$OPTARG ;;
+	
+              C) COMMUNITY=$OPTARG ;;
+	
+              \?) echo
+                  echo "Invalid command arguments supplied"
+                  usage
+                  exit 3;;
+         esac
+   done
+
+fi
+
+#--------------------------------------------------------------------------------------------------------------
+
+DESCR=$(snmpget -c $COMMUNITY -v1 -On $HOST .1.3.6.1.2.1.1.1.0 2>/dev/null)
+RETCO=$?
+
+if [ $RETCO -ne 0 ]
+   then
+   echo "Critical! SNMP is not accessible. Please check!"
+   exit 2
+fi
+
+DESCR=$(echo $DESCR | sed 's/^.*STRING://' )
+
+if [ $RETCO -eq 0 ]
+   then
+   echo "OK! SNMP is  accessible.SNMP output:<br>$DESCR"
+   exit 0
+fi
+
+
+
+
+
