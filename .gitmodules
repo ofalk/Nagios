@@ -10,3 +10,6 @@
 [submodule "websphere-nagios"]
 	path = websphere-nagios
 	url = https://github.com/yannlambret/websphere-nagios.git
+[submodule "nagios-rbl-check"]
+	path = nagios-rbl-check
+	url = https://github.com/egeland/nagios-rbl-check.git
