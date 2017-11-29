@@ -41,8 +41,10 @@ $lclconfig = LoadFile($configfile) if -s $configfile;
 my $config = merge($defconfig, $lclconfig);
 
 sub getdbh {
-	my $dsn = $config->{db}->{driver}. ':database=' . $config->{db}->{name} . ';host=' . $config->{db}->{host};
-	$dsn .= 'port=' . $config->{db}->{port} if $config->{db}->{port};
+	my $dsn = $config->{db}->{driver}. ':database=' . $config->{db}->{name};
+        $dsn .= ';host=' . $config->{db}->{host} if $config->{db}->{host};
+        $dsn .= ';mysql_socket=' . $config->{db}->{socket} if $config->{db}->{socket};
+	$dsn .= ';port=' . $config->{db}->{port} if $config->{db}->{port};
 	return DBI->connect($dsn, $config->{db}->{user}, $config->{db}->{pass});
 }
 
@@ -63,14 +65,19 @@ sub do_exit {
 	exit ERRORS->{$code};
 }
 
-my $dbh = getdbh();
-
-my ($host, $debug);
+my ($host, $debug, $paramconfig);
 Getopt::Long::Configure ('pass_through');
 my $result = GetOptions (
 	"host|h=s"	=> \$host,
 	"debug|d"	=> \$debug,
+        "config|c=s"    => \$paramconfig,
 );
+
+if($paramconfig and -s $paramconfig) {
+  $config = merge($config, LoadFile($paramconfig));
+}
+
+my $dbh = getdbh();
 
 # Command line mode 9-}
 if($result && !param()) {
@@ -536,7 +543,7 @@ CREATE TABLE acked_checksums (
         REFERENCES history(id) ON DELETE CASCADE ON UPDATE NO ACTION
 ) ENGINE=InnoDB;
 
-CREATE v_acked_history AS
+CREATE VIEW v_acked_history AS
         SELECT h.id, a.host, a.file, a.status, h.ts, h.who
         FROM history h, acked_checksums a
         WHERE a.history_id = h.id;
