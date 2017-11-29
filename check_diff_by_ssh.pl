@@ -80,6 +80,9 @@ if(@files) {
 if($paramconfig and -s $paramconfig) {
   $config = merge($config, LoadFile($paramconfig));
 }
+if($ENV{'check_diff_by_ssh_config'} and -s $ENV{'check_diff_by_ssh_config'}) {
+  $config = merge($config, LoadFile($ENV{'check_diff_by_ssh_config'}));
+}
 
 my $dbh = getdbh();
 
