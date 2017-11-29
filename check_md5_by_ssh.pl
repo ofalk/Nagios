@@ -77,6 +77,10 @@ if($paramconfig and -s $paramconfig) {
   $config = merge($config, LoadFile($paramconfig));
 }
 
+if($ENV{'check_md5_by_ssh_config'} and -s $ENV{'check_md5_by_ssh_config'}) {
+  $config = merge($config, LoadFile($ENV{'check_md5_by_ssh_config'}));
+}
+
 my $dbh = getdbh();
 
 # Command line mode 9-}
