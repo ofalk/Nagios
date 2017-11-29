@@ -66,8 +66,6 @@ sub do_exit {
 	exit ERRORS->{$code};
 }
 
-my $dbh = getdbh();
-
 my ($host, $debug, @files, $paramconfig);
 Getopt::Long::Configure ('pass_through');
 my $result = GetOptions (
@@ -82,6 +80,8 @@ if(@files) {
 if($paramconfig and -s $paramconfig) {
   $config = merge($config, LoadFile($paramconfig));
 }
+
+my $dbh = getdbh();
 
 $config->{command} = 'tar Pcf - ' . join(' ', @{$config->{files}});
 
