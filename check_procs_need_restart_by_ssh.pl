@@ -18,7 +18,7 @@ Hash::Merge::set_behavior('RIGHT_PRECEDENT');
 
 # see pod for more information
 my $defconfig = Load('
-check_by_ssh: /opt/omd/versions/1.30/lib/nagios/plugins/check_by_ssh
+check_by_ssh: /opt/omd/versions/default/lib/nagios/plugins/check_by_ssh
 ssh_user: root
 command: lsof 2>/dev/null|grep -E \'lib|bin\' |grep DEL|grep -v /SYSV00000000 | grep -v /var/lib/sss/mc | grep -v /etc/selinux/targeted/ | cut -f 1 -d \' \' | sort -u
 ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
