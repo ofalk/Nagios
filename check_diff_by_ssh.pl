@@ -41,8 +41,11 @@ $lclconfig = LoadFile($configfile) if -s $configfile;
 my $config = merge($defconfig, $lclconfig);
 
 sub getdbh {
-	my $dsn = $config->{db}->{driver}. ':database=' . $config->{db}->{name} . ';host=' . $config->{db}->{host};
-	$dsn .= 'port=' . $config->{db}->{port} if $config->{db}->{port};
+        my $dsn;
+	$dsn = $config->{db}->{driver}. ':database=' . $config->{db}->{name};
+        $dsn .= ';host=' . $config->{db}->{host} if $config->{db}->{host};
+        $dsn .= ';mysql_socket=' .$config->{db}->{socket} if $config->{db}->{socket};
+	$dsn .= ';port=' . $config->{db}->{port} if $config->{db}->{port};
 	return DBI->connect($dsn, $config->{db}->{user}, $config->{db}->{pass});
 }
 
@@ -63,18 +66,25 @@ sub do_exit {
 	exit ERRORS->{$code};
 }
 
-my $dbh = getdbh();
-
-my ($host, $debug, @files);
+my ($host, $debug, @files, $paramconfig);
 Getopt::Long::Configure ('pass_through');
 my $result = GetOptions (
 	"host|h=s"	=> \$host,
 	"files|f=s"	=> \@files,
 	"debug|d"	=> \$debug,
+        "config|c=s"    => \$paramconfig
 );
 if(@files) {
 	$config->{files} = \@files;
 }
+if($paramconfig and -s $paramconfig) {
+  $config = merge($config, LoadFile($paramconfig));
+}
+if($ENV{'check_diff_by_ssh_config'} and -s $ENV{'check_diff_by_ssh_config'}) {
+  $config = merge($config, LoadFile($ENV{'check_diff_by_ssh_config'}));
+}
+
+my $dbh = getdbh();
 
 $config->{command} = 'tar Pcf - ' . join(' ', @{$config->{files}});
 

@@ -18,7 +18,7 @@ Hash::Merge::set_behavior('RIGHT_PRECEDENT');
 
 # see pod for more information
 my $defconfig = Load('
-check_by_ssh: /opt/omd/versions/1.10/lib/nagios/plugins/check_by_ssh
+check_by_ssh: /opt/omd/versions/default/lib/nagios/plugins/check_by_ssh
 ssh_user: root
 command: grep ^root /etc/shadow
 ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
@@ -204,7 +204,7 @@ CREATE TABLE rootpw (
  will override the defaults - so no need to copy the defaults, if you
  do not need to change them.
 
- check_by_ssh: /opt/omd/versions/1.10/lib/nagios/plugins/check_by_ssh
+ check_by_ssh: /opt/omd/versions/default/lib/nagios/plugins/check_by_ssh
  ssh_user: root
  command: grep ^root /etc/shadow
  ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no

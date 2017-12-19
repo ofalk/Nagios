@@ -12,7 +12,7 @@ use Sys::Hostname;
 use Switch;
 
 # You might want to change this constants to reflect your setup
-use constant CHECK_BY_SSH	=> "/opt/omd/versions/1.30/lib/nagios/plugins/check_by_ssh";
+use constant CHECK_BY_SSH	=> '/opt/omd/versions/default/lib/nagios/plugins/check_by_ssh';
 use constant USER		=> 'root';
 use constant SSH_OPTS		=> '-oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no';
 
