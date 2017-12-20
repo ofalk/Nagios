@@ -92,7 +92,7 @@ done
 #
 
 ##execute SMcli
-RESULT=$($COMMAND $CTRLA_IP $CTRLB_IP -c "show storageSubsystem healthStatus;")
+RESULT=$($COMMAND $CTRLA_IP $CTRLB_IP -c "show storageSubsystem healthStatus;" -quick)
 
 ##filter unnecessary SMcli output
 RESULT=$(echo $RESULT |sed 's/Performing syntax check...//g' | sed 's/Syntax check complete.//g' | sed 's/Executing script...//g' | sed 's/Script execution complete.//g'| sed 's/SMcli completed successfully.//g' | sed 's/The controller clocks in the storage subsystem are out of synchronization with the storage management station.//g' | sed 's/ Controller in Slot [AB]://g' | sed 's/Storage Management Station://g' | sed 's/\<[A-Za-z]\{3\}\>\s\<[A-Za-z]\{3\}\>\s[0-9]\{2\}\s[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}\s\(CEST\|CET\)\s[0-9]\{4\}//g')
