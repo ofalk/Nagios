@@ -21,7 +21,7 @@ my $temp_file	= "/tmp/IBM_performance_$runninguser"."$opt_storage1.txt";
 my $new_check	= 0;
 my $sanname	= undef;
 my @input;
-my $command="$smcli";
+my $command="$smcli -quick";
 $command .= " $opt_storage1";
 $command .= " $opt_storage2";
 $command .= " -n $sanname" if(defined($sanname));
