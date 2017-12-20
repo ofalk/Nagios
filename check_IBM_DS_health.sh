@@ -4,7 +4,7 @@
 #
 #   Check state of IBM DS4x00 / 5x00 Health Status
 #   
-#   uses IBM SMclient package, tested with version 10.70 
+#   uses IBM SMclient package, tested with version 10.70 & 10.83 
 #
 #   created by Martin Moebius
 #
@@ -14,6 +14,15 @@
 #                    * changed filtering of SMcli output to string based sed instead of position based awk
 #                    * moved filtering of SMcli output to remove redundant code
 #                    * more comments on code
+#
+#   06.02.2012 - 1.2 * added patch from user "cseres", better SMcli output parsing
+#
+#   03.09.2012 - 1.3 * filter controller clock sync warning from output
+#
+#   13.11.2012 - 1.4 * changed result parsing to fix "Unreadable sector" messages from DS3300/3400 not getting reported correctly
+#
+#   08.01.2012 - 1.5 * changed result parsing to fix "Battery Expiration" messages not getting reported correctly
+#                    * added another wildcard entry in the nested "case"-statement to get at least a UNKNOWN response for any possible message
 #
 #########################################################
 
@@ -86,7 +95,7 @@ done
 RESULT=$($COMMAND $CTRLA_IP $CTRLB_IP -c "show storageSubsystem healthStatus;")
 
 ##filter unnecessary SMcli output
-RESULT=$(echo $RESULT |sed 's/Performing syntax check...//g' | sed 's/Syntax check complete.//g' | sed 's/Executing script...//g' | sed 's/Script execution complete.//g'| sed 's/SMcli completed successfully.//g' )
+RESULT=$(echo $RESULT |sed 's/Performing syntax check...//g' | sed 's/Syntax check complete.//g' | sed 's/Executing script...//g' | sed 's/Script execution complete.//g'| sed 's/SMcli completed successfully.//g' | sed 's/The controller clocks in the storage subsystem are out of synchronization with the storage management station.//g' | sed 's/ Controller in Slot [AB]://g' | sed 's/Storage Management Station://g' | sed 's/\<[A-Za-z]\{3\}\>\s\<[A-Za-z]\{3\}\>\s[0-9]\{2\}\s[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}\s\(CEST\|CET\)\s[0-9]\{4\}//g')
 
 ##check SMcli output to identfy error and report back to Nagios
 case "$RESULT" in
@@ -97,16 +106,26 @@ case "$RESULT" in
   ;;
  *failure*)
   case "$RESULT" in
-    *failed*)
+    *failed*|*Failed*|*Unreadable*)
       echo $RESULT
       echo "CRITICAL"
       exit $STATE_CRITICAL
     ;;
-    *Preferred*)
+    *preferred*|*Preferred*|*Expiration*)
       echo $RESULT
       echo "WARNING"
       exit $STATE_WARNING
     ;;
-   esac
+    *)
+     echo "Unkown response from SMcli: \" $RESULT \""
+     echo "UNKNOWN"
+     exit $STATE_UNKNOWN
+    ;;
+  esac
   ;;
+ *)
+  echo "Unkown response from SMcli: \" $RESULT \""
+  echo "UNKNOWN"
+  exit $STATE_UNKNOWN
+ ;;
 esac
