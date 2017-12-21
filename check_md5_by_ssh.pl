@@ -488,7 +488,8 @@ EOF
 			}
 		}
 		param(-name=>'op',-value=>'show');
-		my $redir_url = self_url();
+		my $redir_url = self_url;
+$redir_url =~ s/%2C%20.*?\/+?/\//g;
 print <<EOF;
 <script type="text/javascript">
 <!--
