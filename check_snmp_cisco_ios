@@ -1,0 +1,86 @@
+#!/bin/bash
+
+# Licensed under GPL. See http://www.fsf.org/licensing/licenses/gpl.html#SEC1
+# Based on private work from Patrik Schindler <poc@pocnet.net> (c) 2005
+
+MYNAME=`basename $0`
+PROGPATH=`echo $0 |sed -e 's,[\\/][^\\/][^\\/]*$,,'`
+test -x $PROGPATH/utils.sh && . $PROGPATH/utils.sh
+
+# Ohne Parameter blöde machen
+if [ $# -lt 1 ]; then
+	printf "Usage: ${MYNAME} -h host -c snmp-community [version]\n"
+	exit ${STATE_UNKNOWN}
+fi
+
+# Optionen parsen: Getopt unter Shell ist der größte Mist, wenn's um : Args geht
+NEXT_IS_H=0
+NEXT_IS_C=0
+NEXT_IS_END=0
+#
+OPTSTRING=`getopt "vc:h:" $*`
+test $? -ne 0 && exit ${STATE_UNKNOWN}
+for OPTION in ${OPTSTRING}; do
+	if [ ${NEXT_IS_H} -eq 1 ]; then
+		HOST=$OPTION
+		NEXT_IS_H=0
+	elif [ ${NEXT_IS_C} -eq 1 ]; then
+		COMMUNITY=$OPTION
+		NEXT_IS_C=0
+	elif [ ${NEXT_IS_END} -eq 1 ]; then
+		NEEDED_VERSION=$OPTION
+		NEXT_IS_END=0
+	fi
+
+	case "${OPTION}" in
+		"-v")
+			echo '$Id: check_snmp_cisco_ios,v 1.3 2007/06/07 09:36:39 pschindler Exp $'
+			exit ${STATE_UNKNOWN}
+		;;
+		"-c")
+			NEXT_IS_C=1
+		;;
+		"-h")
+			NEXT_IS_H=1
+		;;
+		"--")
+			NEXT_IS_END=1
+		;;
+	esac
+done
+
+unset NEXT_IS_C NEXT_IS_H NEXT_IS_END
+
+# Sanity Check
+if [ -z "${HOST}" ]; then
+	echo "You MUST supply a host to monitor."
+	exit ${STATE_UNKNOWN}
+fi
+if [ -z "${COMMUNITY}" ]; then
+	echo "You MUST supply a snmp community."
+	exit ${STATE_UNKNOWN}
+fi
+
+# Next, get neccessary information
+ERR=0
+VERSION=`snmpget -v1 -OQv -c "${COMMUNITY}" "${HOST}" SNMPv2-MIB::sysDescr.0 |fgrep 'Version ' |sed 's/^.*, Version \(.*\), .*$/\1/'` || ERR=`expr ${ERR} + 1`
+
+if [ ${ERR} -gt 0 ]; then
+	echo "SNMP Error."
+	exit ${STATE_UNKNOWN}
+fi
+
+if [ -z "${NEEDED_VERSION}" ]; then
+	echo "${VERSION}"
+	exit ${STATE_OK}
+fi
+
+if [ "${NEEDED_VERSION}" = "${VERSION}" ]; then
+	echo "Version OK: ${VERSION}"
+	exit ${STATE_OK}
+else
+	echo "Version WARNING: ${VERSION} != ${NEEDED_VERSION}"
+	exit ${STATE_WARNING}
+fi
+
+# EOF
