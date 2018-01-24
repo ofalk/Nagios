@@ -13,3 +13,6 @@
 [submodule "nagios-rbl-check"]
 	path = nagios-rbl-check
 	url = https://github.com/egeland/nagios-rbl-check.git
+[submodule "check_imap_login.git"]
+	path = check_imap_login.git
+	url = https://github.com/isavcic/check_imap_login.git
