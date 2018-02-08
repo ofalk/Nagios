@@ -19,3 +19,6 @@
 [submodule "check_poseidon.git"]
 	path = check_poseidon.git
 	url = https://github.com/NETWAYS/check_poseidon.git
+[submodule "check_foreman.git"]
+	path = check_foreman.git
+	url = https://github.com/helge000/check_foreman.git
