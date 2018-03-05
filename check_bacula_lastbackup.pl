@@ -116,6 +116,8 @@ while(<JOBLIST>) {
   my $_startTimeAsUnixtime=timelocal($_S, $_M, $_H, $_d, $_m-1, $_y);
   my $backupAgeInSeconds=time()-$_startTimeAsUnixtime;
 
+  $backupAgeInSeconds = 1 if $backupAgeInSeconds<0;
+
   if ($backupAgeInSeconds>0) {
     if ($latestBackupAge < 0 || $latestBackupAge > $backupAgeInSeconds) {
       $latestBackupAge=$backupAgeInSeconds;
