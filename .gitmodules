@@ -22,3 +22,6 @@
 [submodule "check_foreman.git"]
 	path = check_foreman.git
 	url = https://github.com/helge000/check_foreman.git
+[submodule "op5_check_vmware_api.git"]
+	path = op5_check_vmware_api.git
+	url = https://github.com/op5/check_vmware_api.git
