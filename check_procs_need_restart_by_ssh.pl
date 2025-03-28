@@ -20,7 +20,7 @@ Hash::Merge::set_behavior('RIGHT_PRECEDENT');
 my $defconfig = Load('
 check_by_ssh: /opt/omd/versions/default/lib/nagios/plugins/check_by_ssh
 ssh_user: root
-command: lsof 2>/dev/null|grep -E \'lib|bin\' |grep DEL|grep -v /SYSV00000000 | grep -v /var/lib/sss/mc | grep -v /etc/selinux/targeted/ | cut -f 1 -d \' \' | sort -u
+command: lsof 2>/dev/null|grep -E \'lib|bin\' |grep DEL|grep -v /SYSV00000000 | grep -v /var/lib/sss/mc | grep -v /etc/selinux/targeted/ | grep -v /elasticsearch/indices/ | cut -f 1 -d \' \' | sort -u
 ssh_opts: -oNumberOfPasswordPrompts=0 -oPasswordAuthentication=no -oStrictHostKeyChecking=no
 check_by_ssh_opts: -E -t 180
 ');
