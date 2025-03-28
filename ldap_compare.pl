@@ -12,8 +12,8 @@
 # REQUIREMENTS: ---
 #         BUGS: ---
 #        NOTES: ---
-#       AUTHOR: Oliver Falk <oliver@linux-kernel.at> or <oliver.falk@omv.com>
-# ORGANIZATION: Linux Kernel Austria / EOF Media Consult / OMV
+#       AUTHOR: Oliver Falk <oliver@linux-kernel.at>
+# ORGANIZATION: Linux Kernel Austria
 #      VERSION: 1.0
 #      CREATED: 04/04/2016 01:15:40 PM
 #     REVISION: ---
