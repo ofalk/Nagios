@@ -19,6 +19,3 @@ C version available here: http://nagios.manubulon.com/
 
 Documentation you ask? Learn Perl, Python and Bash and you'll
 understand the scripts.
-
-
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/ofalk/nagios/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
