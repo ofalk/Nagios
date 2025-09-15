@@ -9,19 +9,17 @@ Getopt::Long::Configure ('auto_help');
 use DBI;
 use CGI qw/:standard -oldstyle_urls/;
 use Sys::Hostname;
-use Switch;
 use YAML qw/LoadFile Load/;
 use File::Spec;
 use Hash::Merge qw/merge/;
 Hash::Merge::set_behavior('RIGHT_PRECEDENT');
-use Net::SSH2;
+use Net::OpenSSH;
 use IO::Scalar;
 use Text::Diff;
 
 # see pod for more information
 my $defconfig = Load('
 ssh_user: "root"
-ssh_publickey: "/path/to/your/ssh-pub-key"
 ssh_privatekey: "/path/to/you/ssh-priv-key"
 
 db:
@@ -99,21 +97,25 @@ if($result && !param()) {
 	my $fs_hsh;
 	my ($added, $changed, $removed);
 	
-	my $ssh = Net::SSH2->new();
-	$ssh->method('COMP_CS', 'zlib');
-	$ssh->connect($host);
+	my $ssh = Net::OpenSSH->new($host,
+		user => $config->{ssh_user},
+		key_path => $config->{ssh_privatekey},
+		timeout => 30,
+		master_opts => [-o => "Compression=yes"]
+	);
 	
-	$ssh->auth(username => $config->{ssh_user}, publickey => $config->{ssh_publickey}, privatekey => $config->{ssh_privatekey});
-	if($ssh->auth_ok) {
-		foreach my $file (@{$config->{files}}) {
-			my $content;
-			my $SH = new IO::Scalar \$content;
-			$ssh->scp_get($file, $SH);
-			close($SH);
+	if($ssh->error) {
+		die "Unable to connect: " . $ssh->error;
+	}
+
+	foreach my $file (@{$config->{files}}) {
+		my $content = $ssh->capture("cat", $file);
+		if($ssh->error) {
+			# File might not exist or be readable
+			$fs_hsh->{$file} = undef;
+		} else {
 			$fs_hsh->{$file} = $content;
 		}
-	} else {
-		die "Unable to autenticate!";
 	}
 
 	# No run before - empty hash
@@ -537,7 +539,7 @@ check_diff_by_ssh.pl
 
 =head1 DESCRIPTION
 
-    Nagios script to fetch files from an remote host via Net::SSH2 and check if
+    Nagios script to fetch files from an remote host via Net::OpenSSH and check if
     it has changed. Mostly needed for configuration files.
 
     The script is based on my check_md5_by_ssh.pl script - you might want to
@@ -585,12 +587,11 @@ check_diff_by_ssh.pl
  if you need to override the defaults. Any values in the config file
  will override the defaults - so no need to copy the defaults, if you
  do not need to change them. However, you _NEED_ to adapt the paths
- to the ssh public/private key, since the defaults will definitely
+ to the ssh private key, since the defaults will definitely
  not work!
 
 
  ssh_user: "root"
- ssh_publickey: "/path/to/your/ssh-pub-key"
  ssh_privatekey: "/path/to/you/ssh-priv-key"
 
  files:
@@ -685,7 +686,7 @@ Oliver Falk <oliver@linux-kernel.at>
 
 =head1 COPYRIGHT
 
-Copyright (c) 2013-2014. Oliver Falk. All rights reserved.
+Copyright (c) 2013-2025. Oliver Falk. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
