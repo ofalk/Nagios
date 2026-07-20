@@ -205,13 +205,21 @@ if($result && !param()) {
 			# Add them to the database, but with the status 'added'
 			# if not already done;
 			$dbh->begin_work;
-			$sth = $dbh->prepare("INSERT INTO files (host, file, status) values (?, ?, ?)");
+			$sth = $dbh->prepare("INSERT INTO files (host, file, content, status) values (?, ?, ?, ?)");
+			my $sth_upd = $dbh->prepare("UPDATE files SET content = ? WHERE host = ? AND file = ? AND (content IS NULL OR content = '')");
 			foreach(keys %{$added}) {
-				next if $db_hsh->{$_}; # already in the database
-				$sth->bind_param(1, $host);
-				$sth->bind_param(2, $_);
-				$sth->bind_param(3, 'added');
-				$sth->execute();
+				if ($db_hsh->{$_}) {
+					$sth_upd->bind_param(1, $added->{$_}->{new});
+					$sth_upd->bind_param(2, $host);
+					$sth_upd->bind_param(3, $_);
+					$sth_upd->execute();
+				} else {
+					$sth->bind_param(1, $host);
+					$sth->bind_param(2, $_);
+					$sth->bind_param(3, $added->{$_}->{new});
+					$sth->bind_param(4, 'added');
+					$sth->execute();
+				}
 			}
 			$dbh->commit;
 		}
@@ -464,6 +472,8 @@ EOF
 			my $res = $sth->fetchrow_arrayref();
 			return if @{$res}[0] == 0; # Nothing here, so we get back to our caller, probably other db host
 
+			$dbh->begin_work;
+
 			# Add the history entry
 			$sth = $dbh->prepare("INSERT INTO history (who) VALUES (?)");
 			$sth->bind_param(1, $ENV{REMOTE_USER} || $ENV{AUTHENTICATED_UID} || 'Unknown');
@@ -491,6 +501,8 @@ EOF
 			$sth = $dbh->prepare("DELETE FROM files WHERE host = ? AND status = 'removed'");
 			$sth->bind_param(1, $host);
 			$sth->execute();
+
+			$dbh->commit;
 
 			print "<p align=\"center\">Done on $config->{db}->{host}</p>\n";
 		}

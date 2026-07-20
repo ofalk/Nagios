@@ -203,7 +203,7 @@ if($result && !param()) {
 			# Update status in the the database: 'changed'
 			# if not already done
 			$dbh->begin_work;
-			$sth = $dbh->prepare("UPDATE checksums SET status = 'changed', checksum = ?, old_checksum = ? WHERE host = ? AND file COLLATE latin1_bin = ?");
+			$sth = $dbh->prepare("UPDATE checksums SET status = 'changed', checksum = ?, old_checksum = ? WHERE host = ? AND file = ?");
 			foreach(keys %{$changed}) {
 				$sth->bind_param(1, $changed->{$_}->{new});
 				$sth->bind_param(2, $changed->{$_}->{old});
@@ -441,6 +441,8 @@ EOF
 			my $res = $sth->fetchrow_arrayref();
 			return if @{$res}[0] == 0; # Nothing here, so we get back to our caller, probably other db host
 
+			$dbh->begin_work;
+
 			# Add the history entry
 			$sth = $dbh->prepare("INSERT INTO history (who) VALUES (?)");
 			$sth->bind_param(1, $ENV{REMOTE_USER} || $ENV{AUTHENTICATED_UID} || 'Unknown');
@@ -468,6 +470,8 @@ EOF
 			$sth = $dbh->prepare("DELETE FROM checksums WHERE host = ? AND status = 'removed'");
 			$sth->bind_param(1, $host);
 			$sth->execute();
+
+			$dbh->commit;
 
 			print "<p align=\"center\">Done on $config->{db}->{host}</p>\n";
 		}
