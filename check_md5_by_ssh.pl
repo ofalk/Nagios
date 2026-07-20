@@ -33,11 +33,21 @@ db:
   host: localhost
 ');
 
-# This will not work on Windows. But we do not support Windows. :-P
-my $configfile = File::Spec->catfile((File::Spec->splitpath(File::Spec->rel2abs($0)))[1], 'check_md5_by_ssh.yml');
+# Search multiple paths for check_md5_by_ssh.yml
+my @config_paths = (
+    File::Spec->catfile((File::Spec->splitpath(File::Spec->rel2abs($0)))[1], 'check_md5_by_ssh.yml'),
+    '/omd/sites/prod/etc/check_md5_by_ssh.yml',
+    '/opt/monitoring-configs/check_md5_by_ssh.yml',
+    '/etc/check_md5_by_ssh.yml',
+);
 
 my $lclconfig = {};
-$lclconfig = LoadFile($configfile) if -s $configfile;
+foreach my $cfg_path (@config_paths) {
+    if ($cfg_path and -s $cfg_path) {
+        $lclconfig = LoadFile($cfg_path);
+        last;
+    }
+}
 my $config = merge($defconfig, $lclconfig);
 
 sub getdbh {
