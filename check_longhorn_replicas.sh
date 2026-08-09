@@ -112,14 +112,21 @@ RESULTS=$(jq -n \
         (
           [($replica_map[$vname] // [])[] | select(.status.currentState == "stopped") | .status.conditions[]? | select(.type == "RebuildFailed" and .status == "True") | .message] | first
         ) as $rebuild_error |
-        ($robustness + " [" + $vstate + "]" + (if $rebuild_error then " (Error: " + $rebuild_error + ")" else "" end)) as $err_msg |
+        
+        [
+          (if $vcurrent_count < $expected then "actual replicas " + ($vcurrent_count|tostring) + " < expected " + ($expected|tostring) else empty end),
+          (if $robustness != "healthy" and ($vstate != "detached" or $robustness != "unknown") then "robustness is " + $robustness + " (" + $vstate + ")" else empty end),
+          (if $rebuild_error then "rebuild failed: " + $rebuild_error else empty end)
+        ] as $reasons |
+        ($reasons | join(", ")) as $reason_str |
+        ($full_name + " (" + $vname + "): " + $reason_str) as $err_msg |
         
         if $vcurrent_count <= 0 then
-            .critical += [$full_name + "=" + $err_msg]
+            .critical += [$err_msg]
         elif $vcurrent_count < ($expected - 1) then
-            .critical += [$full_name + "=" + $err_msg]
+            .critical += [$err_msg]
         else
-            .warning += [$full_name + "=" + $err_msg]
+            .warning += [$err_msg]
         end
     end
   )
@@ -129,19 +136,24 @@ TOTAL=$(echo "$RESULTS" | jq -r '.total')
 CRIT_COUNT=$(echo "$RESULTS" | jq -r '.critical | length')
 WARN_COUNT=$(echo "$RESULTS" | jq -r '.warning | length')
 OK_COUNT=$(echo "$RESULTS" | jq -r '.ok')
-CRIT_LIST=$(echo "$RESULTS" | jq -r '.critical | join(", ")')
-WARN_LIST=$(echo "$RESULTS" | jq -r '.warning | join(", ")')
 
 PERFDATA="total=$TOTAL;critical=$CRIT_COUNT;warning=$WARN_COUNT;ok=$OK_COUNT"
 
-if [ "$CRIT_COUNT" -gt 0 ]; then
-    echo "CRITICAL: $CRIT_COUNT volumes problematic ($CRIT_LIST) | $PERFDATA"
-    exit 2
-fi
-
-if [ "$WARN_COUNT" -gt 0 ]; then
-    echo "WARNING: $WARN_COUNT volumes problematic ($WARN_LIST) | $PERFDATA"
-    exit 1
+if [ "$CRIT_COUNT" -gt 0 ] || [ "$WARN_COUNT" -gt 0 ]; then
+    if [ "$CRIT_COUNT" -gt 0 ]; then
+        echo "CRITICAL: $CRIT_COUNT critical / $WARN_COUNT warning volumes problematic | $PERFDATA"
+        echo "Critical volumes:"
+        echo "$RESULTS" | jq -r '.critical[] | "  - \(.)"'
+        if [ "$WARN_COUNT" -gt 0 ]; then
+            echo "Warning volumes:"
+            echo "$RESULTS" | jq -r '.warning[] | "  - \(.)"'
+        fi
+        exit 2
+    else
+        echo "WARNING: $WARN_COUNT volumes problematic | $PERFDATA"
+        echo "$RESULTS" | jq -r '.warning[] | "  - \(.)"'
+        exit 1
+    fi
 fi
 
 echo "OK: All $TOTAL volumes healthy or rebuilding | $PERFDATA"

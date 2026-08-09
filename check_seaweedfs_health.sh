@@ -1,8 +1,8 @@
 #!/bin/bash
 # check_seaweedfs_health.sh - Check SeaweedFS health via kubectl and Master API
 
-MASTER_POD="gitlab-storage-master-0"
-NAMESPACE="gitlab"
+MASTER_POD="localghost-storage-master-0"
+NAMESPACE="localghost"
 
 # Check if Kubernetes API is accessible
 if ! kubectl get pods -n "$NAMESPACE" >/dev/null 2>&1; then

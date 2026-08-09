@@ -8,10 +8,10 @@ CHECK_COMMAND=$3
 
 CHECK_BY_SSH="/opt/omd/sites/prod/lib/nagios/plugins/check_by_ssh"
 
-# Try nodes in order
-for NODE in $NODES; do
+# Try nodes in random order to distribute load
+for NODE in $(echo $NODES | tr ' ' '\n' | shuf); do
     # Run the check
-    OUT=$($CHECK_BY_SSH -H $NODE -l $SSH_USER -C "$CHECK_COMMAND" -t 10 2>&1)
+    OUT=$($CHECK_BY_SSH -H $NODE -l $SSH_USER -C "$CHECK_COMMAND" -t 30 2>&1)
     RET=$?
     
     # If RET is 0 (OK), 1 (WARNING), or 2 (CRITICAL), we have a valid result
