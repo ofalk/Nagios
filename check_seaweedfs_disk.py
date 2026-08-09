@@ -16,8 +16,8 @@ def query_url(url):
 
 def check_seaweedfs():
     parser = argparse.ArgumentParser(description='Check SeaweedFS Volume Server disk usage.')
-    parser.add_argument('--master', type=str, default='http://gitlab-storage-master.gitlab.svc.cluster.local:9333',
-                        help='SeaweedFS master address (default: http://gitlab-storage-master.gitlab.svc.cluster.local:9333)')
+    parser.add_argument('--master', type=str, default='http://localghost-storage-master.localghost.svc.cluster.local:9333',
+                        help='SeaweedFS master address (default: http://localghost-storage-master.localghost.svc.cluster.local:9333)')
     parser.add_argument('-w', '--warning', type=float, default=80.0,
                         help='Warning threshold for disk usage percent (default: 80.0)')
     parser.add_argument('-c', '--critical', type=float, default=90.0,
