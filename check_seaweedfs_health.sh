@@ -1,8 +1,28 @@
 #!/bin/bash
 # check_seaweedfs_health.sh - Check SeaweedFS health via kubectl and Master API
+# Usage: check_seaweedfs_health.sh [--namespace <ns>] [--master-pod <pod>]
+#   Values default to localghost deployment, but are meant to be supplied
+#   from the Naemon service definition (check_cluster_ssh command args).
 
-MASTER_POD="localghost-storage-master-0"
 NAMESPACE="localghost"
+MASTER_POD="localghost-storage-master-0"
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --namespace)
+            NAMESPACE="$2"
+            shift 2
+            ;;
+        --master-pod)
+            MASTER_POD="$2"
+            shift 2
+            ;;
+        *)
+            echo "UNKNOWN: Unknown option: $1" >&2
+            exit 3
+            ;;
+    esac
+done
 
 # Check if Kubernetes API is accessible
 if ! kubectl get pods -n "$NAMESPACE" >/dev/null 2>&1; then
