@@ -55,9 +55,8 @@ class H3ClientProtocol(QuicConnectionProtocol):
 
 async def check_http3_async(hostname, ip, port, path, expected_statuses, expected_string,
                             timeout, insecure, ipv4_only, ipv6_only):
-    # Resolve target IP if not explicitly given
-    target_ip = ip
-    if not target_ip:
+    target_ips = [ip] if ip else []
+    if not target_ips:
         family = socket.AF_UNSPEC
         if ipv4_only:
             family = socket.AF_INET
@@ -65,9 +64,18 @@ async def check_http3_async(hostname, ip, port, path, expected_statuses, expecte
             family = socket.AF_INET6
         try:
             addr_info = socket.getaddrinfo(hostname, port, family=family, type=socket.SOCK_DGRAM)
-            target_ip = addr_info[0][4][0]
+            # Unique IPs preserving resolution order
+            seen = set()
+            for x in addr_info:
+                cand = x[4][0]
+                if cand not in seen:
+                    seen.add(cand)
+                    target_ips.append(cand)
         except Exception as e:
             return STATE_CRITICAL, f"DNS resolution failed for {hostname}: {e}", 0, 0, 0, 0
+
+    if not target_ips:
+        return STATE_CRITICAL, f"No IP addresses resolved for {hostname}", 0, 0, 0, 0
 
     config = QuicConfiguration(
         is_client=True,
@@ -78,68 +86,74 @@ async def check_http3_async(hostname, ip, port, path, expected_statuses, expecte
     if not insecure:
         config.load_verify_locations(certifi.where())
 
-    t0 = time.perf_counter()
-    try:
-        async with connect(target_ip, port, configuration=config, create_protocol=H3ClientProtocol) as client:
-            t_handshake = time.perf_counter() - t0
-            stream_id = client._quic.get_next_available_stream_id()
-            client.http.send_headers(
-                stream_id=stream_id,
-                headers=[
-                    (b":method", b"GET"),
-                    (b":scheme", b"https"),
-                    (b":authority", hostname.encode()),
-                    (b":path", path.encode()),
-                    (b"user-agent", b"check_http3/1.0 (Naemon/Nagios Monitoring)"),
-                    (b"accept", b"*/*"),
-                ],
-                end_stream=True,
-            )
-            client.transmit()
+    last_error = None
+    per_ip_timeout = timeout / len(target_ips) if len(target_ips) > 1 else timeout
 
-            await asyncio.wait_for(client.done.wait(), timeout=timeout)
-            t_total = time.perf_counter() - t0
-
-            # Extract status code
-            status_code = None
-            for k, v in client.headers:
-                if k == b":status":
-                    status_code = int(v.decode())
-                    break
-
-            if status_code is None:
-                return STATE_CRITICAL, "No :status header received in HTTP/3 response", t_handshake, t_total, 0, 0
-
-            body_bytes = len(client.body)
-
-            if status_code not in expected_statuses:
-                return (
-                    STATE_CRITICAL,
-                    f"Unexpected HTTP/3 status {status_code} (expected {expected_statuses})",
-                    t_handshake,
-                    t_total,
-                    status_code,
-                    body_bytes,
+    for target_ip in target_ips:
+        t0 = time.perf_counter()
+        try:
+            async with connect(target_ip, port, configuration=config, create_protocol=H3ClientProtocol) as client:
+                t_handshake = time.perf_counter() - t0
+                stream_id = client._quic.get_next_available_stream_id()
+                client.http.send_headers(
+                    stream_id=stream_id,
+                    headers=[
+                        (b":method", b"GET"),
+                        (b":scheme", b"https"),
+                        (b":authority", hostname.encode()),
+                        (b":path", path.encode()),
+                        (b"user-agent", b"check_http3/1.0 (Naemon/Nagios Monitoring)"),
+                        (b"accept", b"*/*"),
+                    ],
+                    end_stream=True,
                 )
+                client.transmit()
 
-            if expected_string and expected_string.encode() not in client.body:
-                return (
-                    STATE_CRITICAL,
-                    f"Expected string '{expected_string}' not found in body",
-                    t_handshake,
-                    t_total,
-                    status_code,
-                    body_bytes,
-                )
+                await asyncio.wait_for(client.done.wait(), timeout=per_ip_timeout)
+                t_total = time.perf_counter() - t0
 
-            return STATE_OK, f"HTTP/3 {status_code} OK", t_handshake, t_total, status_code, body_bytes
+                # Extract status code
+                status_code = None
+                for k, v in client.headers:
+                    if k == b":status":
+                        status_code = int(v.decode())
+                        break
 
-    except asyncio.TimeoutError:
-        return STATE_CRITICAL, f"HTTP/3 request timed out after {timeout}s", 0, timeout, 0, 0
-    except Exception as e:
-        import traceback
-        tb = traceback.format_exc().replace('\n', ' -- ')
-        return STATE_CRITICAL, f"HTTP/3 QUIC connection failed: {type(e).__name__}: {e} (detail: {tb})", 0, 0, 0, 0
+                if status_code is None:
+                    return STATE_CRITICAL, f"No :status header received from {target_ip}", t_handshake, t_total, 0, 0
+
+                body_bytes = len(client.body)
+
+                if status_code not in expected_statuses:
+                    return (
+                        STATE_CRITICAL,
+                        f"Unexpected HTTP/3 status {status_code} from {target_ip} (expected {expected_statuses})",
+                        t_handshake,
+                        t_total,
+                        status_code,
+                        body_bytes,
+                    )
+
+                if expected_string and expected_string.encode() not in client.body:
+                    return (
+                        STATE_CRITICAL,
+                        f"Expected string '{expected_string}' not found in body from {target_ip}",
+                        t_handshake,
+                        t_total,
+                        status_code,
+                        body_bytes,
+                    )
+
+                return STATE_OK, f"HTTP/3 {status_code} OK (via {target_ip})", t_handshake, t_total, status_code, body_bytes
+
+        except asyncio.TimeoutError:
+            last_error = f"Timed out connecting to {target_ip}:{port}"
+        except OSError as e:
+            last_error = f"Network error connecting to {target_ip}:{port}: {e}"
+        except Exception as e:
+            last_error = f"Connection failed to {target_ip}:{port}: {e}"
+
+    return STATE_CRITICAL, f"HTTP/3 QUIC connection failed: {last_error}", 0, timeout, 0, 0
 
 
 def main():
