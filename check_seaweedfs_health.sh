@@ -1,5 +1,10 @@
 #!/bin/bash
 # check_seaweedfs_health.sh - Check SeaweedFS health via kubectl and Master API
+#
+# LEGACY: prefer check_seaweedfs_health.py. Topology.Free is free volume-file
+# slots (Max - Volumes), not free bytes; the "Low storage capacity" warning in
+# this script is misleading when volumes are partially filled.
+#
 # Usage: check_seaweedfs_health.sh [--namespace <ns>] [--master-pod <pod>]
 #   Values default to localghost deployment, but are meant to be supplied
 #   from the Naemon service definition (check_cluster_ssh command args).

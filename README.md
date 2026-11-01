@@ -19,3 +19,20 @@ C version available here: http://nagios.manubulon.com/
 
 Documentation you ask? Learn Perl, Python and Bash and you'll
 understand the scripts.
+
+## SeaweedFS
+
+`check_seaweedfs_health.py` is the current cluster health check:
+
+- reports free **volume-file slots** as a percentage, not as "storage
+  capacity" (`Topology.Free` is `Max - Volumes`, so a server can have very few
+  slots while 30% of the disk is still free);
+- reports disk usage, read-only volumes, under-replicated volumes, component
+  readiness, `Seaweed.status.ready` and `VolumeClaimTemplates` drift;
+- supports `--namespace`, `--seaweed-name`, `--master-pod`, the expected
+  replica counts and the warning/critical thresholds.
+
+The older `check_seaweedfs_health.sh` is kept for compatibility. Its
+"Low storage capacity" message reflects free volume slots, not free bytes;
+prefer the Python check for new deployments.
+
